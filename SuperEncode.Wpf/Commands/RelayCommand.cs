@@ -2,17 +2,17 @@
 
 namespace SuperEncode.Wpf.Commands
 {
-    class RelayCommand(Action<object?> execute, Func<object?, bool>? canExecute = null) : ICommand
+    public class RelayCommand<T>(Action<T> execute, Func<T?, bool>? canExecute = null) : ICommand
     {
 
         public bool CanExecute(object? parameter)
         {
-            return canExecute != null && canExecute(parameter);
+            return canExecute is null || canExecute.Invoke((T)parameter!);
         }
 
         public void Execute(object? parameter)
         {
-            execute.Invoke(parameter);
+            execute.Invoke((T)parameter!);
         
         }
         public void OnCanExecuteChanged()

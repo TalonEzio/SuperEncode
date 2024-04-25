@@ -4,8 +4,11 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:converters="clr-namespace:SuperEncode.Wpf.Converters">
     <Application.Resources>
-        <converters:FontFamilyNameConverter x:Key="FontFamilyNameConverter" />
-        <converters:FontTypeViewConverter x:Key="FontTypeViewConverter" />
 
+        <ResourceDictionary>
+            <converters:FontFamilyNameConverter x:Key="FontFamilyNameConverter" />
+            <converters:FontTypeViewConverter x:Key="FontTypeViewConverter" />
+            <converters:FontFamilyConverter x:Key="FontFamilyConverter" />
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -1,100 +1,79 @@
-﻿using System.IO;
+﻿using System.ComponentModel;
+using System.IO;
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using Microsoft.Win32;
+using SuperEncode.Wpf.Extensions;
+using SuperEncode.Wpf.ViewModels;
 
 namespace SuperEncode.Wpf.Windows
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow
     {
-        private string _currentDirectory = Environment.CurrentDirectory;
-        private readonly string _fontDirectory = "C:\\Windows\\Fonts";
+        readonly string _applicationPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
 
-        public MainWindow()
+        private readonly MainViewModel _mainViewModel;
+        public MainWindow(MainViewModel mainViewModel)
         {
             InitializeComponent();
-            LoadFonts("");
-            TxtFontName.Text = "UVN VAN";
-
-        }
-
-        private void LoadFonts(string filterName)
-        {
-            var installedFonts = Fonts.GetFontFamilies(_fontDirectory)
-                .Where(x =>
-                {
-                    var fontName = x.Source.Split("#")[^1];
-                    return (fontName.StartsWith("UTM") || fontName.StartsWith("UVF") || fontName.StartsWith("UVN"))
-                           && fontName.Contains(filterName, StringComparison.OrdinalIgnoreCase);
-                }).ToList();
-
-            if (CmbFont != null)
-            {
-                CmbFont.ItemsSource = installedFonts;
-                CmbFont.SelectedIndex = 0;
-            }
-        }
-
-        private void BtnSelectPath_Click(object sender, RoutedEventArgs e)
-        {
-            var folderDialog = new OpenFolderDialog();
-            folderDialog.ShowDialog();
-
-            _currentDirectory = folderDialog.FolderName;
-
-            TxtPath.Text = _currentDirectory;
-
-            var aviFiles = Directory.GetFiles(TxtPath.Text, "*.avi", SearchOption.TopDirectoryOnly);
-            var mkvFiles = Directory.GetFiles(TxtPath.Text, "*.mkv", SearchOption.TopDirectoryOnly);
-
-            string[] files = [..aviFiles, ..mkvFiles];
-
-            TxtFileCount.Text = files.Length.ToString();
-
-            PbStatus.Value = 0;
-            PbStatus.Maximum = files.LongLength;
-        }
-
-        private void TxtFontName_OnTextChanged(object sender, TextChangedEventArgs e)
-        {
-            var textBox = sender as TextBox;
-
-            if (textBox?.Text != null) LoadFonts(textBox.Text);
-        }
-
-        private void CmbFont_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (CmbFont.SelectedIndex < 0) return;
-
-            var selectedFont = (FontFamily)CmbFont.SelectedItem;
-
-            if (selectedFont != null)
-            {
-                var typeFaces =
-                    Fonts.GetTypefaces(_fontDirectory)
-                        .Where(x => x.FontFamily.Source.Equals(selectedFont.Source))
-                        .Distinct();
-
-                CmbFontType.ItemsSource = typeFaces.ToList();
-
-            }
 
 
-        }
-
-        private void BtnDelete_OnClick(object sender, RoutedEventArgs e)
-        {
-            PbStatus.Value = PbStatus.Maximum = 0;
-            TxtFileCount.Text = "0";
-        }
-
-        private void BtnRun_OnClick(object sender, RoutedEventArgs e)
-        {
+            _mainViewModel = mainViewModel;
             
+            DataContext = _mainViewModel;
+            
+            Loaded += MainWindow_Loaded;
+
+        }
+
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            await _mainViewModel.LoadAsync();
+        }
+        
+        private void MainWindow_OnClosing(object? sender, CancelEventArgs e)
+        {
+            var fontSearchText = _mainViewModel.SubtitleSetting.GetFontName();
+
+            if (fontSearchText.Contains("Bold")) fontSearchText = fontSearchText.Replace("Bold", "").TrimEnd();
+
+
+            var jsonObject = new
+            {
+                Settings = new
+                {
+                    _mainViewModel.VideoSetting,
+                    SubtitleSetting = new
+                    {
+                        _mainViewModel.SubtitleSetting.Website,
+                        _mainViewModel.SubtitleSetting.MaxBitrate,
+                        _mainViewModel.SubtitleSetting.OutLine,
+                        _mainViewModel.SubtitleSetting.FontSize,
+                        _mainViewModel.SubtitleSetting.Bold,
+                        _mainViewModel.SubtitleSetting.Italic,
+                        _mainViewModel.SubtitleSetting.Underline,
+                        _mainViewModel.SubtitleSetting.Strikeout,
+                        FontSearchText = fontSearchText,
+                        _mainViewModel.SubtitleSetting.Marquee,
+                        _mainViewModel.SubtitleSetting.OverrideSubtitle,
+
+                    }
+                }
+            };
+
+            var json = JsonSerializer.Serialize(jsonObject, JsonSerializerOptions.Default);
+
+            var configPath = Path.Combine(_applicationPath, "Config.json");
+
+            if (!File.Exists(configPath)) File.Create(configPath);
+
+            using var fileStream = new FileStream(configPath, FileMode.Truncate);
+            var writerStream = new StreamWriter(fileStream, Encoding.Unicode);
+            writerStream.WriteAsync(json);
+
+            writerStream.Close();
+            fileStream.Close();
         }
     }
 }

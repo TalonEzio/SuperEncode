@@ -4,15 +4,13 @@ using System.Windows.Media;
 
 namespace SuperEncode.Wpf.Converters
 {
-    public class FontFamilyNameConverter: IValueConverter
+    public class FontFamilyConverter: IValueConverter
     {
         public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
-            if (value is not FontFamily input) return 
-                "Uvn van";
+            var fonts = Fonts.GetFontFamilies(@"C:\Windows\Fonts");
 
-            var fontName = input.Source.Split("#")[^1];
-            return fontName;
+            return value as FontFamily ?? fonts.First();
         }
 
         public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

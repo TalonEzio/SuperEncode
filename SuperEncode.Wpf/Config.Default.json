@@ -1,0 +1,22 @@
+{
+  "Settings": {
+    "SubtitleSetting": {
+      "Website": "animew.org",
+      "MaxBitrate": 24000,
+      "Outline": 0.75,
+      "FontSize": 20,
+      "Bold": true,
+      "Italic": false,
+      "Underline": false,
+      "FontSearchText": "UVN VAN",
+      "Marquee": "Tool làm bởi Talon Ezio, hehe"
+    },
+    "EncodeSetting": {
+      "OverrideSubtitle": true,
+      "EnableHdr": false,
+      "EnableCmd": false,
+      "DeleteAfterEncode": true,
+      "InputFolder": "C:\\Users\\TalonEzio\\Downloads\\Video"
+    }
+  }
+}
