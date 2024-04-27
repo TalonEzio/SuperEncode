@@ -1,10 +1,11 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text;
-using Nikse.SubtitleEdit.Core.Common;
-using Nikse.SubtitleEdit.Core.SubtitleFormats;
 using SuperEncode.Wpf.Extensions;
+using SuperEncode.Wpf.Models;
 using SuperEncode.Wpf.ViewModels;
+using Xabe.FFmpeg;
 
 namespace SuperEncode.Wpf.Services
 {
@@ -12,47 +13,41 @@ namespace SuperEncode.Wpf.Services
     {
         private static readonly string BasePath = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()!.Location)!;
         public async Task<string> ConvertToAss(
-            string inputFile, SubtitleSetting subtitleSetting, VideoSetting encodeSetting
+            IMediaInfo mediaInfo, SubtitleSetting subtitleSetting, VideoSetting encodeSetting
             )
         {
+            var inputFile = mediaInfo.Path;
             var subtitlePath = await ExportSubtitle(inputFile, encodeSetting.EnableCmd);
 
-            if (!await IsAssFormat(subtitlePath))
-            {
-                subtitlePath = await ConvertToAssInternal(subtitlePath);
-            }
-
-            await ProcessSubtitle(subtitlePath, subtitleSetting);
-
+            await UpdateAssStyle(subtitlePath, subtitleSetting);
             return subtitlePath;
         }
-        private async Task<string> ExportSubtitle(string inputFile, bool enableCmd = false)
+        private static async Task<string> ExportSubtitle(string inputFile, bool enableCmd = false)
         {
-            var randomFile = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".srt"));
+            var randomFile = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".ass"));
 
-            var arguments = BuildMkvExtractArguments(inputFile, randomFile);
+            var arguments = BuildExportSubtitleArguments(inputFile, randomFile);
 
-            await RunMkvExtract(arguments, enableCmd);
+            await RunExportSubtitle(arguments, enableCmd);
 
             return randomFile;
         }
 
-        private string BuildMkvExtractArguments(string inputFile, string outputFile)
+        private static string BuildExportSubtitleArguments(string inputFile, string outputFile)
         {
             var builder = new StringBuilder();
             builder.Append($" -i \"{inputFile}\" ");
             builder.Append(" -map 0:s:0 ");
             builder.Append($" \"{outputFile}\" ");
-
             return builder.ToString();
         }
 
-        private async Task RunMkvExtract(string arguments, bool useShellExecute)
+        private static async Task RunExportSubtitle(string arguments, bool useShellExecute)
         {
-            var mkvExtractPath = Path.Combine(BasePath, "Tools", "ffmpeg.exe");
+            var ffmpegPath = Path.Combine(BasePath, "Tools", "ffmpeg.exe");
             var startInfo = new ProcessStartInfo
             {
-                FileName = mkvExtractPath,
+                FileName = ffmpegPath,
                 Arguments = arguments,
                 UseShellExecute = useShellExecute,
                 CreateNoWindow = !useShellExecute
@@ -64,108 +59,124 @@ namespace SuperEncode.Wpf.Services
             await process.WaitForExitAsync();
         }
 
-
-        private Task<string> ConvertToAssInternal(string subtitlePath)
+        private string FindStyleLine(string fileContent, string styleName)
         {
-            var outputSubtitlePath = Path.ChangeExtension(subtitlePath, ".ass");
-            File.Move(subtitlePath, outputSubtitlePath);
-            return Task.FromResult(outputSubtitlePath);
+            var startPosition = fileContent.IndexOf($"Style: {styleName}", StringComparison.OrdinalIgnoreCase);
+
+            var endPosition = fileContent.IndexOf("\n", startPosition, StringComparison.OrdinalIgnoreCase);
+
+            return fileContent.Substring(startPosition, endPosition - startPosition - 1);
+        }
+        private AssStyleFormat ReadStyleFromLine(string line)
+        {
+            var split = line.Split(',');
+
+            var result = new AssStyleFormat()
+            {
+                Name = split[0].Replace("Style:", "").Trim(),
+                FontName = split[1],
+                FontSize = int.Parse(split[2]),
+                PrimaryColour = split[3],
+                SecondaryColour = split[4],
+                OutlineColour = split[5],
+                BackColour = split[6],
+                Bold = int.Parse(split[7]) == -1,
+                Italic = int.Parse(split[8]) == -1,
+                Underline = int.Parse(split[9]) == -1,
+                StrikeOut = int.Parse(split[10]) == -1,
+                ScaleX = int.Parse(split[11]),
+                ScaleY = int.Parse(split[12]),
+                Spacing = int.Parse(split[13]),
+                Angle = int.Parse(split[14]),
+                BorderStyle = int.Parse(split[15]),
+                Outline = double.Parse(split[16]),
+                Shadow = double.Parse(split[17]),
+                Alignment = int.Parse(split[18]),
+                MarginL = int.Parse(split[19]),
+                MarginR = int.Parse(split[20]),
+                MarginV = int.Parse(split[21]),
+                Encoding = (StyleEncoding)Enum.Parse(typeof(StyleEncoding), split[22])
+            };
+
+            return result;
         }
 
-        private async Task ProcessSubtitle(string subtitlePath, SubtitleSetting subtitleSetting)
+
+        public async Task UpdateAssStyle(string filePath, SubtitleSetting subtitleSetting)
         {
-            var subtitle = Subtitle.Parse(subtitlePath);
-            subtitle.RemoveEmptyLines();
+            var resultBuilder = new StringBuilder();
 
-            var outputSubtitleContent = new AdvancedSubStationAlpha().ToText(subtitle, subtitlePath);
-            await File.WriteAllTextAsync(subtitlePath, outputSubtitleContent);
+            var templatePath = Path.Combine(BasePath, "AssStyles", "template.ass");
+            var templateContent = await File.ReadAllTextAsync(templatePath);
 
-            if (subtitleSetting.OverrideSubtitle)
+            var inputContent = await File.ReadAllTextAsync(filePath);
+
+            templateContent = templateContent.Replace("[[[Website]]]", subtitleSetting.Website.ToUpper());
+            templateContent = templateContent.Replace("[[[Marquee]]]", subtitleSetting.Marquee);
+            templateContent = templateContent.Replace("[[[Marquee-FontName]]]", subtitleSetting.GetFontName());
+            templateContent = templateContent.Replace("[[[Marquee-FontSize]]]", (subtitleSetting.FontSize * 8.5 / 10).ToString(CultureInfo.InvariantCulture));
+
+            const string beginStyleString = "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding";
+
+            var beginTemplateStyleIndex = templateContent.IndexOf(beginStyleString, StringComparison.OrdinalIgnoreCase);
+
+            var endTemplateStyleIndex = templateContent.IndexOf("\n", beginTemplateStyleIndex, StringComparison.Ordinal);
+
+            if (subtitleSetting.OverrideStyleDefault)
             {
-                UpdateAssStyle(subtitlePath, subtitleSetting);
-            }
-        }
+                var defaultStyle = ReadStyleFromLine(FindStyleLine(templateContent, "Default"));
 
+                defaultStyle.FontName = subtitleSetting.GetFontName();
+                defaultStyle.FontSize = subtitleSetting.FontSize;
+                defaultStyle.Bold = subtitleSetting.Bold;
+                defaultStyle.Italic = subtitleSetting.Italic;
+                defaultStyle.Underline = subtitleSetting.Underline;
+                defaultStyle.StrikeOut = subtitleSetting.Strikeout;
+                defaultStyle.Outline = subtitleSetting.OutLine;
 
-        public async Task<bool> IsAssFormat(string filePath)
-        {
-            var fileContent = await File.ReadAllTextAsync(filePath);
-            var hasAssFormat = fileContent.Contains("[Script Info]") && fileContent.Contains("[V4+ Styles]") && fileContent.Contains("[Events]");
+                var beginDefaultStyle = templateContent.IndexOf("Style: Default", StringComparison.OrdinalIgnoreCase);
 
-            return hasAssFormat;
-        }
-        public void UpdateAssStyle(string filePath, SubtitleSetting subtitleSetting)
-        {
-            var logoFontStyle = Guid.NewGuid().ToString();
-            var marqueeStyle = Guid.NewGuid().ToString();
+                var endDefaultStyle =
+                    templateContent.IndexOf("\n", beginDefaultStyle, StringComparison.OrdinalIgnoreCase);
 
-            var fontName = subtitleSetting.GetFontName();
-
-            var boldInsert = subtitleSetting.Bold ? -1 : 0;
-            var italicInsert = subtitleSetting.Italic ? -1 : 0;
-            var underLineInsert = subtitleSetting.Underline ? -1 : 0;
-            var strikeoutInsert = subtitleSetting.Strikeout ? -1 : 0;
-
-            var defaultStyleBuilder = $"Style: Default,{fontName}," +
-                            $"{subtitleSetting.FontSize}," +
-                            $"&H00FFFFFF,&H00000000,&H00000000,&H00000000,{boldInsert},{italicInsert},{underLineInsert},{strikeoutInsert}," +
-                            $"100,100,0,0,1,{subtitleSetting.OutLine},0,2,10,10,10,1";
-
-            var marqueeStyleBuilder = $"Style: {marqueeStyle},{fontName}," +
-                            $"{subtitleSetting.FontSize * 70 / 100}," +
-                            $"&H00FFFFFF,&H000000FF,&H00FFC900,&H00000000,{boldInsert},{italicInsert},{underLineInsert},{strikeoutInsert}," +
-                            $"100,100,0,0,3,1,0,8,10,10,3,1";
-
-            var logoStyleBuilder = $"Style: {logoFontStyle},Bowlby One SC," +
-                            $"{subtitleSetting.FontSize * 85 / 100}," +
-                            $"&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0.75,0,1,0.5,0.2,2,10,10,10,1";
-
-            var newStyles = $"{defaultStyleBuilder}\n{marqueeStyleBuilder}\n{logoStyleBuilder}\n";
-
-            var eventBuilder = new StringBuilder();
-
-            if (!string.IsNullOrEmpty(subtitleSetting.Website))
-            {
-                eventBuilder.AppendLine(
-                    $"\nDialogue: 0,0:00:00.00,5:00:00.00,{logoFontStyle},,0,0,0,,{{\\pos(343.6,35.733)}}{subtitleSetting.Website.ToUpper()}");
+                templateContent = templateContent.Remove(beginDefaultStyle, endDefaultStyle - beginDefaultStyle);
+                templateContent = templateContent.Insert(endTemplateStyleIndex + 1, defaultStyle.ToString());
             }
 
-            eventBuilder.AppendLine(
-                $"Dialogue: 0,0:00:00.00,0:02:00.00,{marqueeStyle},,0,0,0,Banner;60;0;300[delay;left to right;fadeawaywidth;],{subtitleSetting.Marquee}");
-            eventBuilder.AppendLine(
-                $"Dialogue: 0,0:11:00.00,0:13:00.00,{marqueeStyle},,0,0,0,Banner;60;0;300[delay;left to right;fadeawaywidth;],{subtitleSetting.Marquee}");
 
-            var newEvents = eventBuilder.ToString();
+            var beginDialogueIndex =
+                inputContent.IndexOf(
+                    "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+                    StringComparison.OrdinalIgnoreCase);
 
-            var fileContent = File.ReadAllText(filePath);
+            var endDialogueIndex = inputContent.IndexOf("\n", beginDialogueIndex, StringComparison.OrdinalIgnoreCase);
 
-            var beginStyleIndex = fileContent.IndexOf(
-                "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-                StringComparison.OrdinalIgnoreCase);
+            var allDialogueFromSubtitles = inputContent[(endDialogueIndex + 1)..];
 
-            if (beginStyleIndex >= 0)
+            var beginInputStyleIndex = inputContent.IndexOf(beginStyleString, StringComparison.OrdinalIgnoreCase);
+
+            var endInputStyleIndex = inputContent.IndexOf("\n", beginInputStyleIndex, StringComparison.OrdinalIgnoreCase);
+
+            var beginInputEventIndex = inputContent.IndexOf("[Events]", StringComparison.OrdinalIgnoreCase);
+            var inputStyleString = inputContent.Substring(endInputStyleIndex + 1, beginInputEventIndex - endInputStyleIndex - 1).TrimEnd('\n')+'\n';
+
+            var beginTemplateEventIndex = templateContent.IndexOf("[Events]", StringComparison.OrdinalIgnoreCase);
+
+            if (subtitleSetting.OverrideStyleDefault)
             {
+                var beginDefaultStyleIndex =
+                    inputStyleString.IndexOf("Style: Default", StringComparison.OrdinalIgnoreCase);
+                var endDefaultStyleIndex = inputStyleString.IndexOf("\n",beginDefaultStyleIndex,StringComparison.OrdinalIgnoreCase);
 
-                var endOfFormatIndex = fileContent.IndexOf("[Events]", beginStyleIndex, StringComparison.Ordinal);
-                if (endOfFormatIndex >= 0)
-                {
-                    fileContent = fileContent.Insert(endOfFormatIndex - 2, newStyles);
-                }
+                inputStyleString = inputStyleString.Remove(beginDefaultStyleIndex, endDefaultStyleIndex - beginDefaultStyleIndex);
             }
+            templateContent = templateContent.Insert(beginTemplateEventIndex - 2, inputStyleString);
 
-            var beginEventIndex =
-                fileContent.IndexOf("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text", StringComparison.Ordinal);
+            resultBuilder.AppendLine(templateContent);
 
-            if (beginEventIndex >= 0)
-            {
-                var endOfFormatIndex = fileContent.IndexOf('\n', beginEventIndex);
+            resultBuilder.Append(allDialogueFromSubtitles);
 
-                if (endOfFormatIndex >= 0)
-                {
-                    fileContent = fileContent.Insert(endOfFormatIndex + 1, newEvents);
-                }
-            }
-            File.WriteAllText(filePath, fileContent);
+            await File.WriteAllTextAsync(filePath, resultBuilder.ToString());
         }
     }
 }

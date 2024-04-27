@@ -14,12 +14,12 @@ namespace SuperEncode.Wpf.ViewModels
         }
 
 
-        private bool _overrideSubtitle;
+        private bool _overrideStyleDefault;
 
-        public bool OverrideSubtitle
+        public bool OverrideStyleDefault
         {
-            get => _overrideSubtitle;
-            set => SetField(ref _overrideSubtitle, value);
+            get => _overrideStyleDefault;
+            set => SetField(ref _overrideStyleDefault, value);
         }
 
         private string _fontSearchText = string.Empty;

@@ -1,16 +1,22 @@
 ﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Text.Json;
+using System.Text;
 using System.Windows;
 using System.Windows.Media;
 using Microsoft.Win32;
 using SuperEncode.Wpf.Commands;
+using SuperEncode.Wpf.Extensions;
 using SuperEncode.Wpf.Services;
+using Xabe.FFmpeg;
+using System.Reflection;
 
 namespace SuperEncode.Wpf.ViewModels
 {
     public class MainViewModel : BaseViewModel
     {
+        private static readonly string ApplicationPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
 
         private readonly string _fontDirectory = @"C:\Windows\Fonts";
         private SubtitleSetting _subtitleSetting = new();
@@ -80,6 +86,8 @@ namespace SuperEncode.Wpf.ViewModels
         public RelayCommand<string> LoadFontCommand { get; }
         public RelayCommand<object?> ResetCommand { get; }
         public RelayCommand<object?> RunCommand { get; }
+        public RelayCommand<object> ClosingFormCommand { get; }
+        public RelayCommand<object> LoadedFormCommand { get; }
         public Stopwatch DurationStopwatch { get; } = new();
 
 
@@ -87,6 +95,7 @@ namespace SuperEncode.Wpf.ViewModels
         public MainViewModel(VideoService videoService)
         {
             _videoService = videoService;
+            LoadedFormCommand = new RelayCommand<object>(LoadedForm);
             SelectPathCommand = new RelayCommand<object?>(SelectPath);
             OpenFolderCommand = new RelayCommand<string>(OpenFolder);
 
@@ -94,7 +103,60 @@ namespace SuperEncode.Wpf.ViewModels
 
             RunCommand = new RelayCommand<object?>(RunEncode, CanRunEncode);
             ResetCommand = new RelayCommand<object?>(Reset);
+            ClosingFormCommand = new RelayCommand<object>(ClosingForm);
         }
+
+        private async void LoadedForm(object obj)
+        {
+
+            await LoadAsync(); 
+        }
+
+        private void ClosingForm(object obj)
+        {
+            var fontSearchText = SubtitleSetting.GetFontName();
+
+            if (fontSearchText.Contains("Bold")) fontSearchText = fontSearchText.Replace("Bold", "").TrimEnd();
+
+
+            var jsonObject = new
+            {
+                Settings = new
+                {
+                    VideoSetting,
+                    SubtitleSetting = new
+                    {
+                        SubtitleSetting.Website,
+                        SubtitleSetting.MaxBitrate,
+                        SubtitleSetting.OutLine,
+                        SubtitleSetting.FontSize,
+                        SubtitleSetting.Bold,
+                        SubtitleSetting.Italic,
+                        SubtitleSetting.Underline,
+                        SubtitleSetting.Strikeout,
+                        FontSearchText = fontSearchText,
+                        SubtitleSetting.Marquee,
+                        SubtitleSetting.OverrideStyleDefault,
+
+                    }
+                }
+            };
+
+            var json = JsonSerializer.Serialize(jsonObject, JsonSerializerOptions.Default);
+
+            var configPath = Path.Combine(ApplicationPath, "Config.json");
+
+            if (!File.Exists(configPath)) File.Create(configPath);
+
+            using var fileStream = new FileStream(configPath, FileMode.Truncate);
+            var writerStream = new StreamWriter(fileStream, Encoding.Unicode);
+            writerStream.WriteAsync(json);
+
+            writerStream.Close();
+            fileStream.Close();
+
+        }
+
         private bool CanRunEncode(object? arg) => CanRun;
 
         private async void RunEncode(object? obj)
@@ -111,52 +173,21 @@ namespace SuperEncode.Wpf.ViewModels
             {
                 try
                 {
-                    if (!File.Exists(file))
-                    {
-                        MessageBox.Show(
-                            $"Không tìm thấy file {Path.GetFileName(file)}, vui lòng xem lại!",
-                            "Thống báo",
-                            MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK
-                        );
-                        continue;
-                    }
-
-                    var outputVideoFile =
-                        await _videoService.EncodeVideoWithNVencC(file, SubtitleSetting, VideoSetting);
-
-                    if (new FileInfo(outputVideoFile).Length == 0)
-                    {
-                        MessageBox.Show(
-                            $"Encode lỗi {Path.GetFileName(file)}, vui lòng xem lại!",
-                            "Thống báo",
-                            MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK
-                        );
-                    }
+                    await ProcessFile(file);
                 }
                 catch (FileNotFoundException)
                 {
-                    MessageBox.Show(
-                        $"Encode lỗi {Path.GetFileName(file)}, file không có phụ đề!",
-                        "Thống báo",
-                        MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK
-                    );
+                    ShowErrorMessage($"Encode lỗi {Path.GetFileName(file)}, file không thấy!");
                 }
                 catch (Exception e)
                 {
-                    MessageBox.Show(
-                        $"Encode lỗi {Path.GetFileName(file)}!\n{e.Message}",
-                        "Thống báo",
-                        MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK
-                    );
+                    ShowErrorMessage($"Encode lỗi {Path.GetFileName(file)}!\n{e.Message}");
                 }
                 finally
                 {
                     SuccessCount++;
                 }
             }
-
-            EnableWindow = true;
-            SuccessCount = 0;
 
             DurationStopwatch.Stop();
 
@@ -166,7 +197,39 @@ namespace SuperEncode.Wpf.ViewModels
                 MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK
             );
             await timer.DisposeAsync();
+            EnableWindow = true;
+            SuccessCount = 0;
         }
+
+        async Task ProcessFile(string file)
+        {
+            if (!File.Exists(file))
+            {
+                ShowErrorMessage($"Không tìm thấy file {Path.GetFileName(file)}, vui lòng xem lại!");
+                return;
+            }
+
+            var fileInfo = await FFmpeg.GetMediaInfo(file);
+
+            if (!fileInfo.SubtitleStreams.Any())
+            {
+                ShowErrorMessage($"File {Path.GetFileName(file)} không có phụ đề, vui lòng xem lại!");
+                return;
+            }
+
+            var outputVideoFile = await _videoService.EncodeVideoWithNVencC(fileInfo, SubtitleSetting, VideoSetting);
+            if (new FileInfo(outputVideoFile).Length == 0)
+            {
+                ShowErrorMessage($"Encode lỗi {Path.GetFileName(file)}, vui lòng xem lại!");
+            }
+        }
+
+        static void ShowErrorMessage(string message)
+        {
+            MessageBox.Show(message, "Thống báo", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
+        }
+
+
 
         private void Reset(object? obj)
         {

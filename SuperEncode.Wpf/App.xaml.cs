@@ -17,6 +17,8 @@ namespace SuperEncode.Wpf
 
         public App()
         {
+            Xabe.FFmpeg.FFmpeg.SetExecutablesPath(Path.Combine(_applicationPath,"Tools"));
+
             InitializeComponent();
 
             ScanConfig();
@@ -66,7 +68,7 @@ namespace SuperEncode.Wpf
             service.AddScoped<SubtitleService>();
             service.AddScoped<VideoService>();
 
-            service.AddScoped(_ =>
+            service.AddSingleton(_ =>
             {
                 var mainViewModel = new MainViewModel(new VideoService(new SubtitleService()));
                 configuration.Bind("Settings",mainViewModel);
