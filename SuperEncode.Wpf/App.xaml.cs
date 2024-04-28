@@ -40,6 +40,8 @@ namespace SuperEncode.Wpf
         {
             var config = Path.Combine(_applicationPath, "Config.json");
             if (File.Exists(config)) return;
+
+
             var defaultConfig = Path.Combine(_applicationPath, "Config.Default.json");
 
             if (File.Exists(defaultConfig))
@@ -68,9 +70,9 @@ namespace SuperEncode.Wpf
             service.AddScoped<SubtitleService>();
             service.AddScoped<VideoService>();
 
-            service.AddSingleton(_ =>
+            service.AddScoped(_ =>
             {
-                var mainViewModel = new MainViewModel(new VideoService(new SubtitleService()));
+                    var mainViewModel = new MainViewModel(new VideoService(new SubtitleService()));
                 configuration.Bind("Settings",mainViewModel);
                 return mainViewModel;
             });

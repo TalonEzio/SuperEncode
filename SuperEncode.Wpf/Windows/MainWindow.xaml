@@ -7,15 +7,15 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewModel="clr-namespace:SuperEncode.Wpf.ViewModels"
     Title="Encode Anime"
-    Width="840"
-    MinWidth="840"
-    MinHeight="550"
-    MaxHeight="550"
+    Width="860"
+    Height="520"
     d:DataContext="{d:DesignInstance viewModel:MainViewModel}"
     FontSize="20"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
+
     <b:Interaction.Triggers>
+
         <b:EventTrigger EventName="Loaded">
             <b:InvokeCommandAction Command="{Binding Path=LoadedFormCommand}" />
         </b:EventTrigger>
@@ -23,14 +23,19 @@
             <b:InvokeCommandAction Command="{Binding Path=ClosingFormCommand}" />
         </b:EventTrigger>
     </b:Interaction.Triggers>
+
     <Grid IsEnabled="{Binding EnableWindow}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="15*" />
+            <ColumnDefinition Width="13*" />
+        </Grid.ColumnDefinitions>
 
         <Grid.RowDefinitions>
             <RowDefinition Name="RowFunction" Height="Auto" />
             <RowDefinition Name="RowIo" Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel>
+        <StackPanel Grid.RowSpan="2" Grid.ColumnSpan="2">
             <Grid Name="RowInput" Margin="10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition MinWidth="400" />
@@ -57,7 +62,7 @@
                             <TextBox
                                 Name="TxtFontName"
                                 Grid.Column="1"
-                                Text="{Binding SubtitleSetting.FontSearchText, Mode=TwoWay}" />
+                                Text="{Binding SubtitleSetting.FontSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             <Button
                                 Grid.Column="2"
                                 Margin="5,0"
@@ -77,7 +82,7 @@
                                 Name="CmbFont"
                                 Grid.Column="1"
                                 ItemsSource="{Binding FontFamilies}"
-                                SelectedItem="{Binding SubtitleSetting.FontFamily, Mode=TwoWay}">
+                                SelectedItem="{Binding SubtitleSetting.FontFamily, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock FontFamily="{Binding Converter={StaticResource FontFamilyConverter}}" Text="{Binding Converter={StaticResource FontFamilyNameConverter}}" />
@@ -97,22 +102,22 @@
                             <CheckBox
                                 Grid.Column="0"
                                 Content="Đậm"
-                                IsChecked="{Binding SubtitleSetting.Bold, Mode=TwoWay}" />
+                                IsChecked="{Binding SubtitleSetting.Bold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             <CheckBox
                                 Grid.Row="0"
                                 Grid.Column="1"
                                 Content="Nghiêng"
-                                IsChecked="{Binding SubtitleSetting.Italic, Mode=TwoWay}" />
+                                IsChecked="{Binding SubtitleSetting.Italic, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             <CheckBox
                                 Grid.Row="1"
                                 Grid.Column="0"
                                 Content="Gạch chân"
-                                IsChecked="{Binding SubtitleSetting.Underline, Mode=TwoWay}" />
+                                IsChecked="{Binding SubtitleSetting.Underline, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             <CheckBox
                                 Grid.Row="1"
                                 Grid.Column="1"
                                 Content="Gạch ngang"
-                                IsChecked="{Binding SubtitleSetting.Strikeout, Mode=TwoWay}" />
+                                IsChecked="{Binding SubtitleSetting.Strikeout, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
                         </Grid>
 
@@ -122,7 +127,7 @@
                                 <ColumnDefinition />
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="Kích cỡ font" />
-                            <TextBox Grid.Column="1" Text="{Binding SubtitleSetting.FontSize, Mode=TwoWay}" />
+                            <TextBox Grid.Column="1" Text="{Binding SubtitleSetting.FontSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </Grid>
 
                         <Grid Margin="0,0,0,10">
@@ -144,7 +149,7 @@
                             <TextBox
                                 Grid.Column="1"
                                 IsEnabled="True"
-                                Text="{Binding SubtitleSetting.MaxBitrate, Mode=TwoWay}" />
+                                Text="{Binding SubtitleSetting.MaxBitrate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </Grid>
 
                         <Grid Margin="0,0,0,10">
@@ -153,7 +158,7 @@
                                 <ColumnDefinition />
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="Website" />
-                            <TextBox Grid.Column="1" Text="{Binding SubtitleSetting.Website, Mode=TwoWay}" />
+                            <TextBox Grid.Column="1" Text="{Binding SubtitleSetting.Website, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </Grid>
 
                         <Grid Margin="0,0,0,10">
@@ -169,7 +174,7 @@
                             <TextBox
                                 Grid.Column="1"
                                 Height="120"
-                                Text="{Binding SubtitleSetting.Marquee, Mode=TwoWay}"
+                                Text="{Binding SubtitleSetting.Marquee, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                 TextWrapping="Wrap" />
                         </Grid>
 
@@ -198,7 +203,7 @@
                                 Name="CkbHdr"
                                 Grid.Column="1"
                                 Margin="0,0,0,5"
-                                IsChecked="{Binding Path=VideoSetting.EnableHdr}">
+                                IsChecked="{Binding Path=VideoSetting.EnableHdr, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                 Bật HDR
                             </CheckBox>
                         </Grid>
@@ -211,21 +216,21 @@
                             <CheckBox
                                 Name="CkbCmd"
                                 Margin="0,0,0,5"
-                                IsChecked="{Binding Path=VideoSetting.EnableCmd}">
+                                IsChecked="{Binding Path=VideoSetting.EnableCmd, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                 Bật Cmd
                             </CheckBox>
                             <CheckBox
                                 Name="CkbDeleteAfterDone"
                                 Grid.Column="1"
                                 Margin="0,0,0,5"
-                                IsChecked="{Binding Path=VideoSetting.DeleteAfterEncode}">
+                                IsChecked="{Binding Path=VideoSetting.DeleteAfterEncode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                 Xoá sau khi xong
                             </CheckBox>
                         </Grid>
 
                         <Grid Margin="10">
 
-                            <CheckBox Margin="0,0,0,5" IsChecked="{Binding Path=ScanDeep}">
+                            <CheckBox Margin="0,0,0,5" IsChecked="{Binding Path=ScanDeep, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                 Quét toàn bộ folder con
                             </CheckBox>
                         </Grid>
@@ -326,9 +331,6 @@
                 </Border>
 
             </Grid>
-            <StatusBar FontSize="20">
-                <StatusBarItem Content="Version 1.0.1" />
-            </StatusBar>
         </StackPanel>
 
     </Grid>

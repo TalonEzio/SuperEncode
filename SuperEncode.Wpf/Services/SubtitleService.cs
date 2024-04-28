@@ -114,7 +114,7 @@ namespace SuperEncode.Wpf.Services
             templateContent = templateContent.Replace("[[[Website]]]", subtitleSetting.Website.ToUpper());
             templateContent = templateContent.Replace("[[[Marquee]]]", subtitleSetting.Marquee);
             templateContent = templateContent.Replace("[[[Marquee-FontName]]]", subtitleSetting.GetFontName());
-            templateContent = templateContent.Replace("[[[Marquee-FontSize]]]", (subtitleSetting.FontSize * 8.5 / 10).ToString(CultureInfo.InvariantCulture));
+            templateContent = templateContent.Replace("[[[Marquee-FontSize]]]", (subtitleSetting.FontSize * 7.5 / 10).ToString(CultureInfo.InvariantCulture));
 
             const string beginStyleString = "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding";
 
