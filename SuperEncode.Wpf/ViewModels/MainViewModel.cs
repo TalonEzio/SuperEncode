@@ -45,6 +45,13 @@ namespace SuperEncode.Wpf.ViewModels
                 UpdateFileList(VideoSetting.InputFolder);
             }
         }
+        private double _successPercent;
+
+        public double SuccessPercent
+        {
+            get => _successPercent;
+            set => SetField(ref _successPercent, value);
+        }
 
         private int _successCount;
 
@@ -108,52 +115,62 @@ namespace SuperEncode.Wpf.ViewModels
 
         private async void LoadedForm(object obj)
         {
-
             await LoadAsync(); 
         }
 
-        private void ClosingForm(object obj)
+        private async void ClosingForm(object obj)
         {
-            var fontSearchText = SubtitleSetting.GetFontName();
-
-            if (fontSearchText.Contains("Bold")) fontSearchText = fontSearchText.Replace("Bold", "").TrimEnd();
-
-
-            var jsonObject = new
+            try
             {
-                Settings = new
+                var fontSearchText = SubtitleSetting.GetFontName();
+
+                if (fontSearchText.Contains("Bold")) fontSearchText = fontSearchText.Replace("Bold", "").TrimEnd();
+
+
+                var jsonObject = new
                 {
-                    VideoSetting,
-                    SubtitleSetting = new
+                    Settings = new
                     {
-                        SubtitleSetting.Website,
-                        SubtitleSetting.MaxBitrate,
-                        SubtitleSetting.OutLine,
-                        SubtitleSetting.FontSize,
-                        SubtitleSetting.Bold,
-                        SubtitleSetting.Italic,
-                        SubtitleSetting.Underline,
-                        SubtitleSetting.Strikeout,
-                        FontSearchText = fontSearchText,
-                        SubtitleSetting.Marquee,
-                        SubtitleSetting.OverrideStyleDefault,
-
+                        VideoSetting,
+                        SubtitleSetting = new
+                        {
+                            SubtitleSetting.Website,
+                            SubtitleSetting.MaxBitrate,
+                            SubtitleSetting.OutLine,
+                            SubtitleSetting.FontSize,
+                            SubtitleSetting.Bold,
+                            SubtitleSetting.Italic,
+                            SubtitleSetting.Underline,
+                            SubtitleSetting.Strikeout,
+                            FontSearchText = fontSearchText,
+                            SubtitleSetting.Marquee,
+                            SubtitleSetting.OverrideStyleDefault,
+                        },
+                        ScanDeep
                     }
+                };
+
+                var json = JsonSerializer.Serialize(jsonObject, JsonSerializerOptions.Default);
+
+                var configPath = 
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), nameof(SuperEncode),$"{nameof(SuperEncode)}-Config.json");
+
+                if (File.Exists(configPath))
+                {
+                    File.Delete(configPath);
                 }
-            };
 
-            var json = JsonSerializer.Serialize(jsonObject, JsonSerializerOptions.Default);
+                await using var fileStream = new FileStream(configPath, FileMode.CreateNew);
+                await using var writerStream = new StreamWriter(fileStream, Encoding.Unicode);
+                await writerStream.WriteAsync(json);
 
-            var configPath = Path.Combine(ApplicationPath, "Config.json");
-
-            if (!File.Exists(configPath)) File.Create(configPath);
-
-            using var fileStream = new FileStream(configPath, FileMode.Truncate);
-            var writerStream = new StreamWriter(fileStream, Encoding.Unicode);
-            writerStream.WriteAsync(json);
-
-            writerStream.Close();
-            fileStream.Close();
+                writerStream.Close();
+                fileStream.Close();
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("Lỗi khi lưu cấu hình: "+ e.Message,"Lỗi",MessageBoxButton.OK,MessageBoxImage.Error);
+            }
 
         }
 
@@ -217,14 +234,20 @@ namespace SuperEncode.Wpf.ViewModels
                 return;
             }
 
+            SuccessPercent = 0;
             var outputVideoFile = await _videoService.EncodeVideoWithNVencC(fileInfo, SubtitleSetting, VideoSetting);
+
             if (new FileInfo(outputVideoFile).Length == 0)
             {
                 ShowErrorMessage($"Encode lỗi {Path.GetFileName(file)}, vui lòng xem lại!");
             }
+            else
+            {
+                SuccessPercent = 100;
+            }
         }
 
-        static void ShowErrorMessage(string message)
+        private static void ShowErrorMessage(string message)
         {
             MessageBox.Show(message, "Thống báo", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
         }
@@ -331,8 +354,13 @@ namespace SuperEncode.Wpf.ViewModels
 
             UpdateFontFamilies(SubtitleSetting.FontSearchText);
 
-
+            _videoService.VideoEventHandler += VideoEventHandler;
             return Task.CompletedTask;
+        }
+
+        private void VideoEventHandler(object? sender, VideoProcessEventArgs e)
+        {
+            SuccessPercent = e.Percentage;
         }
     }
 }

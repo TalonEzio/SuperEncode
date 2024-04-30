@@ -10,13 +10,6 @@
             set => SetField(ref _enableHdr, value);
         }
 
-        private bool _enableCmd;
-
-        public bool EnableCmd
-        {
-            get => _enableCmd;
-            set => SetField(ref _enableCmd, value);
-        }
         
 
         private bool _deleteAfterEncode;

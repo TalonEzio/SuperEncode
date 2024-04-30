@@ -15,6 +15,9 @@ namespace SuperEncode.Wpf
     {
         readonly string _applicationPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
 
+        private readonly string _applicationDataPath =
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), nameof(SuperEncode));
+
         public App()
         {
             Xabe.FFmpeg.FFmpeg.SetExecutablesPath(Path.Combine(_applicationPath,"Tools"));
@@ -38,11 +41,15 @@ namespace SuperEncode.Wpf
 
         private void ScanConfig()
         {
-            var config = Path.Combine(_applicationPath, "Config.json");
+            if (!Directory.Exists(_applicationDataPath))
+            {
+                Directory.CreateDirectory(_applicationDataPath);
+            }
+
+            var config = Path.Combine(_applicationDataPath, "SuperEncode-Config.json");
             if (File.Exists(config)) return;
 
-
-            var defaultConfig = Path.Combine(_applicationPath, "Config.Default.json");
+            var defaultConfig = Path.Combine(_applicationPath, "SuperEncode-Config.Default.json");
 
             if (File.Exists(defaultConfig))
             {
@@ -58,10 +65,10 @@ namespace SuperEncode.Wpf
 
         private IServiceProvider ConfigureService()
         {
-
+            ScanConfig();
             var configuration = new ConfigurationBuilder()
-                .SetBasePath(_applicationPath)
-                .AddJsonFile("Config.json")
+                .SetBasePath(_applicationDataPath)
+                .AddJsonFile("SuperEncode-Config.json")
                 .Build();
 
             IServiceCollection service = new ServiceCollection();

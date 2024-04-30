@@ -13,11 +13,10 @@ namespace SuperEncode.Wpf.Services
     {
         private static readonly string BasePath = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()!.Location)!;
         public async Task<string> ConvertToAss(
-            IMediaInfo mediaInfo, SubtitleSetting subtitleSetting, VideoSetting encodeSetting
-            )
+            IMediaInfo mediaInfo, SubtitleSetting subtitleSetting)
         {
             var inputFile = mediaInfo.Path;
-            var subtitlePath = await ExportSubtitle(inputFile, encodeSetting.EnableCmd);
+            var subtitlePath = await ExportSubtitle(inputFile,enableCmd:false);
 
             await UpdateAssStyle(subtitlePath, subtitleSetting);
             return subtitlePath;
@@ -42,15 +41,15 @@ namespace SuperEncode.Wpf.Services
             return builder.ToString();
         }
 
-        private static async Task RunExportSubtitle(string arguments, bool useShellExecute)
+        private static async Task RunExportSubtitle(string arguments, bool enableCmd)
         {
             var ffmpegPath = Path.Combine(BasePath, "Tools", "ffmpeg.exe");
             var startInfo = new ProcessStartInfo
             {
                 FileName = ffmpegPath,
                 Arguments = arguments,
-                UseShellExecute = useShellExecute,
-                CreateNoWindow = !useShellExecute
+                UseShellExecute = false,
+                CreateNoWindow = !enableCmd
             };
 
             using var process = new Process();

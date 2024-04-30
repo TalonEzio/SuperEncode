@@ -8,7 +8,7 @@
     xmlns:viewModel="clr-namespace:SuperEncode.Wpf.ViewModels"
     Title="Encode Anime"
     Width="860"
-    Height="520"
+    Height="500"
     d:DataContext="{d:DesignInstance viewModel:MainViewModel}"
     FontSize="20"
     WindowStartupLocation="CenterScreen"
@@ -213,11 +213,8 @@
                                 <ColumnDefinition />
                                 <ColumnDefinition />
                             </Grid.ColumnDefinitions>
-                            <CheckBox
-                                Name="CkbCmd"
-                                Margin="0,0,0,5"
-                                IsChecked="{Binding Path=VideoSetting.EnableCmd, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                                Bật Cmd
+                            <CheckBox Margin="0,0,0,5" IsChecked="{Binding Path=ScanDeep, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                Quét folder con
                             </CheckBox>
                             <CheckBox
                                 Name="CkbDeleteAfterDone"
@@ -228,12 +225,6 @@
                             </CheckBox>
                         </Grid>
 
-                        <Grid Margin="10">
-
-                            <CheckBox Margin="0,0,0,5" IsChecked="{Binding Path=ScanDeep, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                                Quét toàn bộ folder con
-                            </CheckBox>
-                        </Grid>
 
                         <Grid Margin="10">
                             <Grid.ColumnDefinitions>
@@ -320,8 +311,8 @@
                             <ProgressBar
                                 Name="PbStatus"
                                 Grid.Column="1"
-                                Maximum="{Binding Files.Count}"
-                                Value="{Binding SuccessCount}" />
+                                Maximum="100"
+                                Value="{Binding SuccessPercent}" />
                             <TextBlock
                                 Grid.Column="2"
                                 Margin="10,0"

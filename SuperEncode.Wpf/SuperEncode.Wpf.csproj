@@ -29,11 +29,8 @@
     <None Update="AssStyles\template.ass">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Config.Default.json">
+    <None Update="SuperEncode-Config.Default.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Config.json">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
     <None Update="Fonts\BowlbyOneSC-Regular.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
