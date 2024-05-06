@@ -9,6 +9,7 @@
             <converters:FontFamilyNameConverter x:Key="FontFamilyNameConverter" />
             <converters:FontTypeViewConverter x:Key="FontTypeViewConverter" />
             <converters:FontFamilyConverter x:Key="FontFamilyConverter" />
+            <converters:SubtitleInFileConverter x:Key="SubtitleInFileConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

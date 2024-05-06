@@ -16,22 +16,104 @@ namespace SuperEncode.Wpf.Services
             IMediaInfo mediaInfo, SubtitleSetting subtitleSetting)
         {
             var inputFile = mediaInfo.Path;
-            var subtitlePath = await ExportSubtitle(inputFile,enableCmd:false);
+            string subtitlePath;
+            if (subtitleSetting.SubtitleInFile)
+            {
+                subtitlePath = await ExportSubtitle(inputFile, enableCmd: false);
+            }
+            else
+            {
+                subtitlePath = await ScanSubtitle(inputFile, subtitleSetting.SuffixSubtitle);
+
+            }
 
             await UpdateAssStyle(subtitlePath, subtitleSetting);
             return subtitlePath;
         }
+
+        private async Task<string> ScanSubtitle(string inputFile, string suffixString)
+        {
+            var fileInfo = new FileInfo(inputFile);
+            var subtitleDirectory = fileInfo.DirectoryName!;
+
+            var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileInfo.Name);
+
+            var suffixList = new List<string> { "" };
+            suffixList.AddRange(suffixString.Split(',').Where(x => !string.IsNullOrEmpty(x)));
+
+            string[] subtitleExtensions = [".ass", ".srt", ".vtt"];
+
+            Debug.WriteLine(subtitleDirectory);
+            foreach (var subtitleExtension in subtitleExtensions)
+            {
+                foreach (var subtitleFileName in suffixList.Select(suffixFileName => $"{fileNameWithoutExtension}{suffixFileName}{subtitleExtension}"))
+                {
+                    Debug.WriteLine($"Info: {subtitleFileName}");
+
+                    var subtitleFullPath = Path.Combine(subtitleDirectory, subtitleFileName);
+                    try
+                    {
+                        if (!File.Exists(subtitleFullPath)) continue;
+
+                        var actuallySubtitleFullPath =  await ConvertSubtitleToAss(subtitleFullPath);
+
+                        return actuallySubtitleFullPath;
+                    }
+                    catch (FileNotFoundException e)
+                    {
+                        Debug.WriteLine($"Error: {e.Message}");
+                    }
+                }
+            }
+
+            throw new FileNotFoundException("Không tìm thấy phụ đề nào!");
+
+        }
+
+        private async Task<string> ConvertSubtitleToAss(string subtitleFullPath)
+        {
+            var actuallySubtitleFullPath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetTempFileName(), ".ass"));
+
+            var arguments = BuildConvertSubtitleArguments(subtitleFullPath, actuallySubtitleFullPath);
+            await RunFfmpegWithArguments(arguments, false);
+
+            if(subtitleFullPath.EndsWith(".ass"))
+                return actuallySubtitleFullPath;
+
+
+            //Change Default Font Size if srt file
+            var fileContent = await File.ReadAllTextAsync(actuallySubtitleFullPath);
+
+            fileContent = fileContent.Replace("PlayResX: 384", "PlayResX: 1920");
+            fileContent = fileContent.Replace("PlayResY: 288", "PlayResY: 1080");
+            fileContent = fileContent.Replace(
+                "Style: Default,Arial,16,&Hffffff,&Hffffff,&H0,&H0,0,0,0,0,100,100,0,0,1,1,0,2,10,10,10,1", 
+                "Style: Default,Arial,65,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,1,2,10,10,30,1");
+
+            await File.WriteAllTextAsync(actuallySubtitleFullPath, fileContent);
+
+            return actuallySubtitleFullPath;
+
+        }
+
         private static async Task<string> ExportSubtitle(string inputFile, bool enableCmd = false)
         {
             var randomFile = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".ass"));
 
             var arguments = BuildExportSubtitleArguments(inputFile, randomFile);
 
-            await RunExportSubtitle(arguments, enableCmd);
+            await RunFfmpegWithArguments(arguments, enableCmd);
 
             return randomFile;
         }
 
+        private static string BuildConvertSubtitleArguments(string inputFile, string outputFile)
+        {
+            var builder = new StringBuilder();
+            builder.Append($" -i \"{inputFile}\" ");
+            builder.Append($" \"{outputFile}\" ");
+            return builder.ToString();
+        }
         private static string BuildExportSubtitleArguments(string inputFile, string outputFile)
         {
             var builder = new StringBuilder();
@@ -41,7 +123,7 @@ namespace SuperEncode.Wpf.Services
             return builder.ToString();
         }
 
-        private static async Task RunExportSubtitle(string arguments, bool enableCmd)
+        private static async Task RunFfmpegWithArguments(string arguments, bool enableCmd)
         {
             var ffmpegPath = Path.Combine(BasePath, "Tools", "ffmpeg.exe");
             var startInfo = new ProcessStartInfo
@@ -115,11 +197,12 @@ namespace SuperEncode.Wpf.Services
             templateContent = templateContent.Replace("[[[Marquee-FontName]]]", subtitleSetting.GetFontName());
             templateContent = templateContent.Replace("[[[Marquee-FontSize]]]", (subtitleSetting.FontSize * 7.5 / 10).ToString(CultureInfo.InvariantCulture));
 
-            const string beginStyleString = "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding";
+            const string beginStyleString = "[V4+ Styles]";
 
             var beginTemplateStyleIndex = templateContent.IndexOf(beginStyleString, StringComparison.OrdinalIgnoreCase);
 
             var endTemplateStyleIndex = templateContent.IndexOf("\n", beginTemplateStyleIndex, StringComparison.Ordinal);
+            endTemplateStyleIndex = templateContent.IndexOf("\n", endTemplateStyleIndex + 1, StringComparison.Ordinal);
 
             if (subtitleSetting.OverrideStyleDefault)
             {
@@ -143,12 +226,14 @@ namespace SuperEncode.Wpf.Services
             }
 
 
-            var beginDialogueIndex =
-                inputContent.IndexOf(
-                    "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
-                    StringComparison.OrdinalIgnoreCase);
+            const string beginDialogueString = "[Events]";
 
-            var endDialogueIndex = inputContent.IndexOf("\n", beginDialogueIndex, StringComparison.OrdinalIgnoreCase);
+            var beginDialogueIndex =
+                inputContent.IndexOf(beginDialogueString, StringComparison.OrdinalIgnoreCase);
+
+
+            var endDialogueIndex = inputContent.IndexOf("\n", beginDialogueIndex + beginDialogueString.Length + 1, StringComparison.OrdinalIgnoreCase);
+            endDialogueIndex = inputContent.IndexOf("\n", endDialogueIndex + 1, StringComparison.OrdinalIgnoreCase);
 
             var allDialogueFromSubtitles = inputContent[(endDialogueIndex + 1)..];
 
@@ -157,7 +242,7 @@ namespace SuperEncode.Wpf.Services
             var endInputStyleIndex = inputContent.IndexOf("\n", beginInputStyleIndex, StringComparison.OrdinalIgnoreCase);
 
             var beginInputEventIndex = inputContent.IndexOf("[Events]", StringComparison.OrdinalIgnoreCase);
-            var inputStyleString = inputContent.Substring(endInputStyleIndex + 1, beginInputEventIndex - endInputStyleIndex - 1).TrimEnd('\n')+'\n';
+            var inputStyleString = inputContent.Substring(endInputStyleIndex + 1, beginInputEventIndex - endInputStyleIndex - 1).TrimEnd('\n') + '\n';
 
             var beginTemplateEventIndex = templateContent.IndexOf("[Events]", StringComparison.OrdinalIgnoreCase);
 
@@ -165,7 +250,7 @@ namespace SuperEncode.Wpf.Services
             {
                 var beginDefaultStyleIndex =
                     inputStyleString.IndexOf("Style: Default", StringComparison.OrdinalIgnoreCase);
-                var endDefaultStyleIndex = inputStyleString.IndexOf("\n",beginDefaultStyleIndex,StringComparison.OrdinalIgnoreCase);
+                var endDefaultStyleIndex = inputStyleString.IndexOf("\n", beginDefaultStyleIndex, StringComparison.OrdinalIgnoreCase);
 
                 inputStyleString = inputStyleString.Remove(beginDefaultStyleIndex, endDefaultStyleIndex - beginDefaultStyleIndex);
             }

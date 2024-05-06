@@ -1,4 +1,6 @@
-﻿namespace SuperEncode.Wpf.ViewModels
+﻿using System.Collections.ObjectModel;
+
+namespace SuperEncode.Wpf.ViewModels
 {
     public class VideoSetting : BaseViewModel
     {
@@ -10,7 +12,6 @@
             set => SetField(ref _enableHdr, value);
         }
 
-        
 
         private bool _deleteAfterEncode;
 
@@ -28,5 +29,8 @@
             set => SetField(ref _inputFolder, value);
         }
 
+
+
     }
+
 }

@@ -46,7 +46,6 @@ namespace SuperEncode.Wpf.Services
 
             builder.Append($"--max-bitrate {subtitleSetting.MaxBitrate} ");
 
-
             builder.Append("--audio-codec libmp3lame ");
             builder.Append("--log-level quiet,core_progress=info ");
 
@@ -88,10 +87,12 @@ namespace SuperEncode.Wpf.Services
 
                 Debug.WriteLine("Info: Process: " + percentage + "%");
 
-                VideoProcessEventHandler?.Invoke(process, new VideoProcessEventArgs()
+                var callbackValue = new VideoProcessEventArgs()
                 {
                     Percentage = percentage
-                });
+                };
+
+                VideoProcessEventHandler?.Invoke(process, callbackValue);
             }
             await process.WaitForExitAsync();
         }

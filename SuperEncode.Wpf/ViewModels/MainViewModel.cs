@@ -10,14 +10,11 @@ using SuperEncode.Wpf.Commands;
 using SuperEncode.Wpf.Extensions;
 using SuperEncode.Wpf.Services;
 using Xabe.FFmpeg;
-using System.Reflection;
 
 namespace SuperEncode.Wpf.ViewModels
 {
     public class MainViewModel : BaseViewModel
     {
-        private static readonly string ApplicationPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
-
         private readonly string _fontDirectory = @"C:\Windows\Fonts";
         private SubtitleSetting _subtitleSetting = new();
 
@@ -115,7 +112,7 @@ namespace SuperEncode.Wpf.ViewModels
 
         private async void LoadedForm(object obj)
         {
-            await LoadAsync(); 
+            await LoadAsync();
         }
 
         private async void ClosingForm(object obj)
@@ -152,8 +149,8 @@ namespace SuperEncode.Wpf.ViewModels
 
                 var json = JsonSerializer.Serialize(jsonObject, JsonSerializerOptions.Default);
 
-                var configPath = 
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), nameof(SuperEncode),$"{nameof(SuperEncode)}-Config.json");
+                var configPath =
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), nameof(SuperEncode), $"{nameof(SuperEncode)}-Config.json");
 
                 if (File.Exists(configPath))
                 {
@@ -169,7 +166,7 @@ namespace SuperEncode.Wpf.ViewModels
             }
             catch (Exception e)
             {
-                MessageBox.Show("Lỗi khi lưu cấu hình: "+ e.Message,"Lỗi",MessageBoxButton.OK,MessageBoxImage.Error);
+                MessageBox.Show("Lỗi khi lưu cấu hình: " + e.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
         }
@@ -235,7 +232,10 @@ namespace SuperEncode.Wpf.ViewModels
             }
 
             SuccessPercent = 0;
-            var outputVideoFile = await _videoService.EncodeVideoWithNVencC(fileInfo, SubtitleSetting, VideoSetting);
+
+            var outputVideoFile =
+                await _videoService.EncodeVideoWithNVencC(
+                fileInfo, SubtitleSetting, VideoSetting);
 
             if (new FileInfo(outputVideoFile).Length == 0)
             {

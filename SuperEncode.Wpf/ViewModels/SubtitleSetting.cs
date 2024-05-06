@@ -101,6 +101,18 @@ namespace SuperEncode.Wpf.ViewModels
             set => SetField(ref _marquee, value);
         }
 
+        private string _suffixSubtitle = ".vi,.vie";
 
+        public string SuffixSubtitle
+        {
+            get => _suffixSubtitle;
+            set => SetField(ref _suffixSubtitle, value);
+        }
+        private bool _subtitleInFile;
+        public bool SubtitleInFile
+        {
+            get => _subtitleInFile;
+            set => SetField(ref _subtitleInFile, value);
+        }
     }
 }

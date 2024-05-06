@@ -8,7 +8,7 @@
     xmlns:viewModel="clr-namespace:SuperEncode.Wpf.ViewModels"
     Title="Encode Anime"
     Width="860"
-    Height="500"
+    Height="566"
     d:DataContext="{d:DesignInstance viewModel:MainViewModel}"
     FontSize="20"
     WindowStartupLocation="CenterScreen"
@@ -188,7 +188,7 @@
                     BorderThickness="1">
 
                     <StackPanel Margin="5">
-                        <Grid Margin="10">
+                        <Grid Margin="5">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition />
                                 <ColumnDefinition />
@@ -208,7 +208,7 @@
                             </CheckBox>
                         </Grid>
 
-                        <Grid Margin="10">
+                        <Grid Margin="5">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition />
                                 <ColumnDefinition />
@@ -225,8 +225,7 @@
                             </CheckBox>
                         </Grid>
 
-
-                        <Grid Margin="10">
+                        <Grid Margin="5">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition />
                                 <ColumnDefinition />
@@ -250,17 +249,36 @@
 
                         </Grid>
 
-                        <TextBlock Text="Đường dẫn thư mục:" />
-                        <Border
-                            Margin="5"
-                            BorderBrush="Black"
-                            BorderThickness="1">
-                            <ScrollViewer>
-                                <TextBlock Name="TxtPath" Text="{Binding VideoSetting.InputFolder}" />
-                            </ScrollViewer>
-                        </Border>
+                        <GroupBox Header="Vị trí phụ đề">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
 
-                        <Grid Margin="10">
+                                <RadioButton
+                                    Grid.Row="0"
+                                    Grid.Column="0"
+                                    Content="Trong file"
+                                    IsChecked="{Binding SubtitleSetting.SubtitleInFile, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <RadioButton
+                                    Grid.Row="0"
+                                    Grid.Column="1"
+                                    Content="Cùng thư mục"
+                                    IsChecked="{Binding SubtitleSetting.SubtitleInFile, Converter={StaticResource SubtitleInFileConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+
+                        </GroupBox>
+
+                        <GroupBox Header="Danh sách đuôi file" IsEnabled="{Binding SubtitleSetting.SubtitleInFile, Converter={StaticResource SubtitleInFileConverter}}">
+                            <TextBox Text="{Binding SubtitleSetting.SuffixSubtitle}" />
+                        </GroupBox>
+
+                        <GroupBox Header="Đường dẫn">
+                            <TextBlock Name="TxtPath" Text="{Binding VideoSetting.InputFolder}" />
+                        </GroupBox>
+
+                        <Grid Margin="5">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition />
                                 <ColumnDefinition />
@@ -274,7 +292,7 @@
 
                         </Grid>
 
-                        <Grid Margin="10">
+                        <Grid Margin="5">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition />
                                 <ColumnDefinition />
@@ -296,7 +314,7 @@
                             </Button>
                         </Grid>
 
-                        <Grid Margin="10">
+                        <Grid Margin="5">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition />
