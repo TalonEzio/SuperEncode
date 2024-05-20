@@ -1,36 +1,44 @@
 ﻿using System.IO;
 using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Serilog;
 using SuperEncode.Wpf.ViewModels;
 using SuperEncode.Wpf.Windows;
-using System.Reflection;
 using SuperEncode.Wpf.Services;
+using System.Text.Json;
+using SuperEncode.Wpf.Extensions;
+using SuperEncode.Wpf.Models;
 
 namespace SuperEncode.Wpf
 {
     public partial class App
     {
-        readonly string _applicationPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+        readonly string _applicationPath = AppContext.BaseDirectory;
 
         private readonly string _applicationDataPath =
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), nameof(SuperEncode));
 
         public App()
         {
-            Xabe.FFmpeg.FFmpeg.SetExecutablesPath(Path.Combine(_applicationPath,"Tools"));
+            var serviceProvider = ConfigureService();
 
             InitializeComponent();
-
-            ScanConfig();
-            var serviceProvider = ConfigureService();
 
             var mainWindow = serviceProvider.GetRequiredService<MainWindow>();
 
             try
             {
+                var mainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
+
+                var settingJsonContent = File.ReadAllText(Path.Combine(_applicationDataPath, "SuperEncode-Config.json"));
+
+                if (!string.IsNullOrEmpty(settingJsonContent))
+                {
+                    var settings = JsonSerializer.Deserialize<SettingJson>(settingJsonContent);
+
+                    mainViewModel.SubtitleSetting = settings?.SubtitleSetting ?? new SubtitleSetting();
+                    mainViewModel.VideoSetting = settings?.VideoSetting ?? new VideoSetting();
+                }
+
                 mainWindow.Show();
             }
             catch (Exception e)
@@ -62,14 +70,10 @@ namespace SuperEncode.Wpf
             }
         }
 
-
         private IServiceProvider ConfigureService()
         {
             ScanConfig();
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(_applicationDataPath)
-                .AddJsonFile("SuperEncode-Config.json")
-                .Build();
+
 
             IServiceCollection service = new ServiceCollection();
 
@@ -77,24 +81,7 @@ namespace SuperEncode.Wpf
             service.AddScoped<SubtitleService>();
             service.AddScoped<VideoService>();
 
-            service.AddScoped(_ =>
-            {
-                    var mainViewModel = new MainViewModel(new VideoService(new SubtitleService()));
-                configuration.Bind("Settings",mainViewModel);
-                return mainViewModel;
-            });
-            
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
-                .WriteTo.File("logs/logs.txt", rollingInterval: RollingInterval.Day)
-                .CreateLogger();
-
-            service.AddLogging(x =>
-            {
-                x.ClearProviders();
-            });
-
-            service.AddSingleton(Log.Logger);
+            service.AddScoped<MainViewModel>();
 
             return service.BuildServiceProvider();
         }

@@ -7,11 +7,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewModel="clr-namespace:SuperEncode.Wpf.ViewModels"
     Title="Encode Anime"
-    Width="860"
-    Height="566"
     d:DataContext="{d:DesignInstance viewModel:MainViewModel}"
     FontSize="20"
-    WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
 
     <b:Interaction.Triggers>
@@ -25,10 +22,6 @@
     </b:Interaction.Triggers>
 
     <Grid IsEnabled="{Binding EnableWindow}">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="15*" />
-            <ColumnDefinition Width="13*" />
-        </Grid.ColumnDefinitions>
 
         <Grid.RowDefinitions>
             <RowDefinition Name="RowFunction" Height="Auto" />
@@ -67,7 +60,7 @@
                                 Grid.Column="2"
                                 Margin="5,0"
                                 Padding="10,0"
-                                Command="{Binding LoadFontCommand}"
+                                Command="{Binding UpdateFontFamiliesCommand}"
                                 CommandParameter="{Binding ElementName=TxtFontName, Path=Text}"
                                 Content="Tìm" />
                         </Grid>
@@ -213,7 +206,7 @@
                                 <ColumnDefinition />
                                 <ColumnDefinition />
                             </Grid.ColumnDefinitions>
-                            <CheckBox Margin="0,0,0,5" IsChecked="{Binding Path=ScanDeep, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                            <CheckBox Margin="0,0,0,5" IsChecked="{Binding Path=VideoSetting.ScanDeep, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                 Quét folder con
                             </CheckBox>
                             <CheckBox
@@ -223,6 +216,16 @@
                                 IsChecked="{Binding Path=VideoSetting.DeleteAfterEncode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                 Xoá sau khi xong
                             </CheckBox>
+                        </Grid>
+
+                        <Grid Margin="5">
+                            <CheckBox 
+                                Margin="0,0,0,5" 
+                                IsChecked="{Binding Path=VideoSetting.FansubMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                ToolTip="Bật tuỳ chọn này, Đè Style Default sẽ tắt">
+                                Fansub Mode (không chỉnh phụ đề)
+                            </CheckBox>
+                        
                         </Grid>
 
                         <Grid Margin="5">
@@ -301,7 +304,7 @@
                             <Button
                                 Name="BtnRun"
                                 Margin="5"
-                                Command="{Binding RunCommand}">
+                                Command="{Binding RunEncodeCommand}">
                                 Chạy
                             </Button>
 

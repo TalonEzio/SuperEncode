@@ -1,24 +1,24 @@
 {
-  "Settings": {
-    "SubtitleSetting": {
-      "Website": "animew.org",
-      "MaxBitrate": 24000,
-      "Outline": 1,
-      "FontSize": 70,
-      "Bold": true,
-      "Italic": false,
-      "Underline": false,
-      "Strikeout": false,
-      "FontSearchText": "UVN VAN",
-      "Marquee": "Phim anime chiếu lúc 00:00-00:30 thứ hai hàng tuần tại ANIMEW.ORG. Chúc các bạn xem phim vui vẻ!"
-    },
-    "EncodeSetting": {
-      "OverrideSubtitle": true,
-      "EnableHdr": false,
-      "EnableCmd": false,
-      "DeleteAfterEncode": true,
-      "InputFolder": ""
-    },
-    "Deep": true
+  "VideoSetting": {
+    "EnableHdr": false,
+    "DeleteAfterEncode": false,
+    "InputFolder": "",
+    "ScanDeep": false,
+    "FansubMode": false
+  },
+  "SubtitleSetting": {
+    "OverrideStyleDefault": true,
+    "FontSearchText": null,
+    "Bold": false,
+    "Italic": false,
+    "Underline": false,
+    "Strikeout": false,
+    "FontSize": 123,
+    "MaxBitrate": 24000,
+    "OutLine": 1,
+    "Website": "animew.org",
+    "Marquee": "Phim c\u1EADp nh\u1EADt l\u00FAc 00:00-00:30 th\u1EE9 hai h\u00E0ng tu\u1EA7n t\u1EA1i animew.org. Ch\u00FAc c\u00E1c b\u1EA1n xem phim vui v\u1EBB!",
+    "SuffixSubtitle": ".vi,.vie",
+    "SubtitleInFile": true
   }
 }

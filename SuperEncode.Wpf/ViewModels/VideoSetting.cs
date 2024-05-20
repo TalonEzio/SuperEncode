@@ -1,36 +1,24 @@
-﻿using System.Collections.ObjectModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SuperEncode.Wpf.ViewModels
 {
-    public class VideoSetting : BaseViewModel
+
+    public partial class VideoSetting : ObservableObject
     {
+        [ObservableProperty]
         private bool _enableHdr;
 
-        public bool EnableHdr
-        {
-            get => _enableHdr;
-            set => SetField(ref _enableHdr, value);
-        }
-
-
+        [ObservableProperty]
         private bool _deleteAfterEncode;
 
-        public bool DeleteAfterEncode
-        {
-            get => _deleteAfterEncode;
-            set => SetField(ref _deleteAfterEncode, value);
-        }
-
+        [ObservableProperty]
         private string _inputFolder = string.Empty;
 
-        public string InputFolder
-        {
-            get => _inputFolder;
-            set => SetField(ref _inputFolder, value);
-        }
+        [ObservableProperty]
+        private bool _scanDeep;
 
-
-
+        [ObservableProperty]
+        private bool _fansubMode;
     }
 
 }

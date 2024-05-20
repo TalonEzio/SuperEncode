@@ -5,33 +5,35 @@ using System.Text;
 using SuperEncode.Wpf.Extensions;
 using SuperEncode.Wpf.Models;
 using SuperEncode.Wpf.ViewModels;
-using Xabe.FFmpeg;
 
 namespace SuperEncode.Wpf.Services
 {
     public class SubtitleService
     {
-        private static readonly string BasePath = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()!.Location)!;
-        public async Task<string> ConvertToAss(
-            IMediaInfo mediaInfo, SubtitleSetting subtitleSetting)
+        private static readonly string BasePath = AppContext.BaseDirectory;
+        public async Task<string> GetSubtitleFromVideo(
+            string path, SubtitleSetting subtitleSetting)
         {
-            var inputFile = mediaInfo.Path;
+            var inputFile = path;
             string subtitlePath;
             if (subtitleSetting.SubtitleInFile)
             {
-                subtitlePath = await ExportSubtitle(inputFile, enableCmd: false);
+                subtitlePath = await ExportSubtitleFromVideo(inputFile, enableCmd: false);
             }
             else
             {
-                subtitlePath = await ScanSubtitle(inputFile, subtitleSetting.SuffixSubtitle);
+                subtitlePath = await ScanSubtitleFromFolder(inputFile, subtitleSetting.SuffixSubtitle);
 
             }
 
-            await UpdateAssStyle(subtitlePath, subtitleSetting);
+            if(!string.IsNullOrEmpty(subtitleSetting.Marquee) && !string.IsNullOrEmpty(subtitleSetting.Website))
+            {
+                await UpdateAssStyle(subtitlePath, subtitleSetting);
+            }    
             return subtitlePath;
         }
 
-        private async Task<string> ScanSubtitle(string inputFile, string suffixString)
+        private async Task<string> ScanSubtitleFromFolder(string inputFile, string suffixString)
         {
             var fileInfo = new FileInfo(inputFile);
             var subtitleDirectory = fileInfo.DirectoryName!;
@@ -55,7 +57,7 @@ namespace SuperEncode.Wpf.Services
                     {
                         if (!File.Exists(subtitleFullPath)) continue;
 
-                        var actuallySubtitleFullPath =  await ConvertSubtitleToAss(subtitleFullPath);
+                        var actuallySubtitleFullPath = await ConvertSubtitleToAss(subtitleFullPath);
 
                         return actuallySubtitleFullPath;
                     }
@@ -70,24 +72,24 @@ namespace SuperEncode.Wpf.Services
 
         }
 
-        private async Task<string> ConvertSubtitleToAss(string subtitleFullPath)
+        private static async Task<string> ConvertSubtitleToAss(string subtitleFullPath)
         {
             var actuallySubtitleFullPath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetTempFileName(), ".ass"));
 
             var arguments = BuildConvertSubtitleArguments(subtitleFullPath, actuallySubtitleFullPath);
             await RunFfmpegWithArguments(arguments, false);
 
-            if(subtitleFullPath.EndsWith(".ass"))
+            if (subtitleFullPath.EndsWith(".ass"))
                 return actuallySubtitleFullPath;
 
 
-            //Change Default Font Size if srt file
             var fileContent = await File.ReadAllTextAsync(actuallySubtitleFullPath);
 
-            fileContent = fileContent.Replace("PlayResX: 384", "PlayResX: 1920");
-            fileContent = fileContent.Replace("PlayResY: 288", "PlayResY: 1080");
-            fileContent = fileContent.Replace(
-                "Style: Default,Arial,16,&Hffffff,&Hffffff,&H0,&H0,0,0,0,0,100,100,0,0,1,1,0,2,10,10,10,1", 
+            fileContent = fileContent
+                .Replace("PlayResX: 384", "PlayResX: 1920")
+                .Replace("PlayResY: 288", "PlayResY: 1080")
+                .Replace(
+                "Style: Default,Arial,16,&Hffffff,&Hffffff,&H0,&H0,0,0,0,0,100,100,0,0,1,1,0,2,10,10,10,1",
                 "Style: Default,Arial,65,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,1,2,10,10,30,1");
 
             await File.WriteAllTextAsync(actuallySubtitleFullPath, fileContent);
@@ -96,7 +98,7 @@ namespace SuperEncode.Wpf.Services
 
         }
 
-        private static async Task<string> ExportSubtitle(string inputFile, bool enableCmd = false)
+        private static async Task<string> ExportSubtitleFromVideo(string inputFile, bool enableCmd = false)
         {
             var randomFile = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".ass"));
 
@@ -185,6 +187,7 @@ namespace SuperEncode.Wpf.Services
 
         public async Task UpdateAssStyle(string filePath, SubtitleSetting subtitleSetting)
         {
+
             var resultBuilder = new StringBuilder();
 
             var templatePath = Path.Combine(BasePath, "AssStyles", "template.ass");
@@ -192,10 +195,13 @@ namespace SuperEncode.Wpf.Services
 
             var inputContent = await File.ReadAllTextAsync(filePath);
 
-            templateContent = templateContent.Replace("[[[Website]]]", subtitleSetting.Website.ToUpper());
-            templateContent = templateContent.Replace("[[[Marquee]]]", subtitleSetting.Marquee);
-            templateContent = templateContent.Replace("[[[Marquee-FontName]]]", subtitleSetting.GetFontName());
-            templateContent = templateContent.Replace("[[[Marquee-FontSize]]]", (subtitleSetting.FontSize * 7.5 / 10).ToString(CultureInfo.InvariantCulture));
+            templateContent = templateContent
+                .Replace("[[[PlayResX]]]", "1920")
+                .Replace("[[[PlayResY]]]", "1080")
+                .Replace("[[[Website]]]", subtitleSetting.Website.ToUpper())
+                .Replace("[[[Marquee]]]", subtitleSetting.Marquee)
+                .Replace("[[[Marquee-FontName]]]", subtitleSetting.GetFontName())
+                .Replace("[[[Marquee-FontSize]]]", (subtitleSetting.FontSize * 7.5 / 10).ToString(CultureInfo.InvariantCulture));
 
             const string beginStyleString = "[V4+ Styles]";
 

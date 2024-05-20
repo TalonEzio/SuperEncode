@@ -5,164 +5,57 @@ using System.Text.Json;
 using System.Text;
 using System.Windows;
 using System.Windows.Media;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
-using SuperEncode.Wpf.Commands;
 using SuperEncode.Wpf.Extensions;
 using SuperEncode.Wpf.Services;
-using Xabe.FFmpeg;
+using SuperEncode.Wpf.Models;
 
 namespace SuperEncode.Wpf.ViewModels
 {
-    public class MainViewModel : BaseViewModel
+    public partial class MainViewModel(VideoService videoService) : ObservableObject
     {
-        private readonly string _fontDirectory = @"C:\Windows\Fonts";
+        private const string FontDirectory = @"C:\Windows\Fonts";
+
+        [ObservableProperty]
         private SubtitleSetting _subtitleSetting = new();
 
-        public SubtitleSetting SubtitleSetting
-        {
-            get => _subtitleSetting;
-            set => SetField(ref _subtitleSetting, value);
-        }
+        [ObservableProperty]
         private VideoSetting _videoSetting = new();
 
-        public VideoSetting VideoSetting
-        {
-            get => _videoSetting;
-            set => SetField(ref _videoSetting, value);
-        }
-
-        private bool _scanDeep;
-
-        public bool ScanDeep
-        {
-            get => _scanDeep;
-            set
-            {
-                SetField(ref _scanDeep, value);
-                UpdateFileList(VideoSetting.InputFolder);
-            }
-        }
+        [ObservableProperty]
         private double _successPercent;
 
-        public double SuccessPercent
-        {
-            get => _successPercent;
-            set => SetField(ref _successPercent, value);
-        }
-
+        [ObservableProperty]
         private int _successCount;
 
-        public int SuccessCount
-        {
-            get => _successCount;
-            set => SetField(ref _successCount, value);
-        }
-
+        [ObservableProperty]
         private bool _canRun;
-        public bool CanRun
-        {
-            get => _canRun;
-            set
-            {
-                SetField(ref _canRun, value);
-                RunCommand.OnCanExecuteChanged();
-                ResetCommand.OnCanExecuteChanged();
-            }
-        }
+
+        [ObservableProperty]
         private bool _enableWindow = true;
-        public bool EnableWindow
-        {
-            get => _enableWindow;
-            set
-            {
-                SetField(ref _enableWindow, value);
-                RunCommand.OnCanExecuteChanged();
-                ResetCommand.OnCanExecuteChanged();
-            }
-        }
+
 
         public ObservableCollection<string> Files { get; set; } = [];
         public ObservableCollection<FontFamily> FontFamilies { get; set; } = [];
-
-        public RelayCommand<object?> SelectPathCommand { get; }
-
-        public RelayCommand<string> OpenFolderCommand { get; }
-        public RelayCommand<string> LoadFontCommand { get; }
-        public RelayCommand<object?> ResetCommand { get; }
-        public RelayCommand<object?> RunCommand { get; }
-        public RelayCommand<object> ClosingFormCommand { get; }
-        public RelayCommand<object> LoadedFormCommand { get; }
+        
         public Stopwatch DurationStopwatch { get; } = new();
 
-
-        private readonly VideoService _videoService;
-        public MainViewModel(VideoService videoService)
-        {
-            _videoService = videoService;
-            LoadedFormCommand = new RelayCommand<object>(LoadedForm);
-            SelectPathCommand = new RelayCommand<object?>(SelectPath);
-            OpenFolderCommand = new RelayCommand<string>(OpenFolder);
-
-            LoadFontCommand = new RelayCommand<string>(UpdateFontFamilies);
-
-            RunCommand = new RelayCommand<object?>(RunEncode, CanRunEncode);
-            ResetCommand = new RelayCommand<object?>(Reset);
-            ClosingFormCommand = new RelayCommand<object>(ClosingForm);
-        }
-
-        private async void LoadedForm(object obj)
+        [RelayCommand]
+        private async Task LoadedForm(object obj)
         {
             await LoadAsync();
         }
 
-        private async void ClosingForm(object obj)
+        [RelayCommand]
+        private async Task ClosingForm(object obj)
         {
             try
             {
-                var fontSearchText = SubtitleSetting.GetFontName();
-
-                if (fontSearchText.Contains("Bold")) fontSearchText = fontSearchText.Replace("Bold", "").TrimEnd();
-
-
-                var jsonObject = new
-                {
-                    Settings = new
-                    {
-                        VideoSetting,
-                        SubtitleSetting = new
-                        {
-                            SubtitleSetting.Website,
-                            SubtitleSetting.MaxBitrate,
-                            SubtitleSetting.OutLine,
-                            SubtitleSetting.FontSize,
-                            SubtitleSetting.Bold,
-                            SubtitleSetting.Italic,
-                            SubtitleSetting.Underline,
-                            SubtitleSetting.Strikeout,
-                            FontSearchText = fontSearchText,
-                            SubtitleSetting.Marquee,
-                            SubtitleSetting.OverrideStyleDefault,
-                        },
-                        ScanDeep
-                    }
-                };
-
-                var json = JsonSerializer.Serialize(jsonObject, JsonSerializerOptions.Default);
-
                 var configPath =
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), nameof(SuperEncode), $"{nameof(SuperEncode)}-Config.json");
-
-                if (File.Exists(configPath))
-                {
-                    File.Delete(configPath);
-                }
-
-                await using var fileStream = new FileStream(configPath, FileMode.CreateNew);
-                await using var writerStream = new StreamWriter(fileStream, Encoding.Unicode);
-                await writerStream.WriteAsync(json);
-
-                writerStream.Close();
-                fileStream.Close();
+                await SaveConfigToFile(configPath);
             }
             catch (Exception e)
             {
@@ -171,9 +64,36 @@ namespace SuperEncode.Wpf.ViewModels
 
         }
 
+        private async Task SaveConfigToFile(string configPath)
+        {
+            if (File.Exists(configPath))
+            {
+                File.Delete(configPath);
+            }
+            await using var fileStream = new FileStream(configPath, FileMode.CreateNew);
+            await using var writerStream = new StreamWriter(fileStream, Encoding.Unicode);
+
+            var fontSearchText = SubtitleSetting.GetFontName();
+
+            if (fontSearchText.Contains("Bold")) SubtitleSetting.FontSearchText = fontSearchText.Replace("Bold", "").TrimEnd();
+
+
+            var settings = new SettingJson()
+            {
+                VideoSetting = VideoSetting,
+                SubtitleSetting = SubtitleSetting,
+            };
+            
+            var json = JsonSerializer.Serialize(settings);
+            await writerStream.WriteAsync(json);
+            writerStream.Close();
+            fileStream.Close();
+        }
+
         private bool CanRunEncode(object? arg) => CanRun;
 
-        private async void RunEncode(object? obj)
+        [RelayCommand(CanExecute = nameof(CanRunEncode))]
+        private async Task RunEncode(object? obj)
         {
             UpdateFileList(VideoSetting.InputFolder);
 
@@ -223,19 +143,11 @@ namespace SuperEncode.Wpf.ViewModels
                 return;
             }
 
-            var fileInfo = await FFmpeg.GetMediaInfo(file);
-
-            if (!fileInfo.SubtitleStreams.Any())
-            {
-                ShowErrorMessage($"File {Path.GetFileName(file)} không có phụ đề, vui lòng xem lại!");
-                return;
-            }
-
             SuccessPercent = 0;
 
             var outputVideoFile =
-                await _videoService.EncodeVideoWithNVencC(
-                fileInfo, SubtitleSetting, VideoSetting);
+                await videoService.EncodeVideoWithNVencC(
+                file, SubtitleSetting, VideoSetting);
 
             if (new FileInfo(outputVideoFile).Length == 0)
             {
@@ -252,9 +164,8 @@ namespace SuperEncode.Wpf.ViewModels
             MessageBox.Show(message, "Thống báo", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
         }
 
-
-
-        private void Reset(object? obj)
+        [RelayCommand]
+        private void Reset()
         {
             VideoSetting.InputFolder = "";
 
@@ -263,6 +174,7 @@ namespace SuperEncode.Wpf.ViewModels
             CanRun = Files.Any();
         }
 
+        [RelayCommand]
         private void OpenFolder(string path)
         {
             if (!Directory.Exists(path)) return;
@@ -275,7 +187,8 @@ namespace SuperEncode.Wpf.ViewModels
             Process.Start(processInfo);
         }
 
-        private void SelectPath(object? obj)
+        [RelayCommand]
+        private void SelectPath()
         {
 
             var folderDialog = new OpenFolderDialog();
@@ -290,7 +203,7 @@ namespace SuperEncode.Wpf.ViewModels
         {
             if (!Directory.Exists(path)) return [];
 
-            var searchOption = ScanDeep ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+            var searchOption = VideoSetting.ScanDeep ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
             var aviFiles = Directory.GetFiles(path, "*.avi", searchOption);
             var mkvFiles = Directory.GetFiles(path, "*.mkv", searchOption);
 
@@ -311,18 +224,18 @@ namespace SuperEncode.Wpf.ViewModels
             CanRun = Files.Any();
 
         }
-
-        private List<FontFamily> LoadFonts(string filterName)
+        private static List<FontFamily> LoadFonts(string filterName)
         {
-            var installedFonts = Fonts.GetFontFamilies(_fontDirectory)
+            var installedFonts = Fonts.GetFontFamilies(FontDirectory)
                 .Where(x =>
                 {
                     var fontName = x.Source.Split("#")[^1];
-                    return fontName.Contains(filterName, StringComparison.OrdinalIgnoreCase);
+                    return string.IsNullOrEmpty(filterName) || fontName.Contains(filterName, StringComparison.OrdinalIgnoreCase);
                 }).ToList();
             return installedFonts;
         }
 
+        [RelayCommand]
         private void UpdateFontFamilies(string filterName)
         {
             var scanFonts = LoadFonts(filterName);
@@ -348,13 +261,13 @@ namespace SuperEncode.Wpf.ViewModels
             SubtitleSetting.FontFamily = FontFamilies.FirstOrDefault();
 
         }
-        public override Task LoadAsync()
+        public Task LoadAsync()
         {
             UpdateFileList(VideoSetting.InputFolder);
 
-            UpdateFontFamilies(SubtitleSetting.FontSearchText);
+            UpdateFontFamilies(SubtitleSetting.FontSearchText!);
 
-            _videoService.VideoEventHandler += VideoEventHandler;
+            videoService.VideoEventHandler += VideoEventHandler;
             return Task.CompletedTask;
         }
 

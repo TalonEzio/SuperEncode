@@ -4,7 +4,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using SuperEncode.Wpf.Extensions;
 using SuperEncode.Wpf.ViewModels;
-using Xabe.FFmpeg;
 
 namespace SuperEncode.Wpf.Services
 {
@@ -17,17 +16,18 @@ namespace SuperEncode.Wpf.Services
             add => VideoProcessEventHandler += value;
             remove => VideoProcessEventHandler -= value;
         }
-        private static readonly string BasePath = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()!.Location)!;
-        public async Task<string> EncodeVideoWithNVencC(
-            IMediaInfo fileInfo, SubtitleSetting subtitleSetting, VideoSetting encodeSetting)
-        {
-            var subtitlePath = await subtitleService.ConvertToAss(fileInfo, subtitleSetting);
+        private static readonly string BasePath = AppContext.BaseDirectory;
 
-            var inputFile = fileInfo.Path;
+        public async Task<string> EncodeVideoWithNVencC(
+            string path, SubtitleSetting subtitleSetting, VideoSetting encodeSetting)
+        {
+            var subtitlePath = await subtitleService.GetSubtitleFromVideo(path, subtitleSetting);
+
+            var inputFile = path;
 
             var outputFile = Path.ChangeExtension(inputFile, ".mp4");
 
-            var arguments = BuildNvEncCArguments(fileInfo, outputFile, subtitlePath, subtitleSetting, encodeSetting);
+            var arguments = BuildNvEncCArguments(path, outputFile, subtitlePath, subtitleSetting, encodeSetting);
 
             await RunNvEncC(arguments);
 
@@ -35,14 +35,13 @@ namespace SuperEncode.Wpf.Services
             return outputFile;
         }
 
-        private static string BuildNvEncCArguments(IMediaInfo fileInfo, string outputFile, string subtitlePath, SubtitleSetting subtitleSetting, VideoSetting encodeSetting)
+        private static string BuildNvEncCArguments(string path, string outputFile, string subtitlePath, SubtitleSetting subtitleSetting, VideoSetting encodeSetting)
         {
             var builder = new StringBuilder();
             builder.Append($" --avsw --codec h264 ");
-            builder.Append($"-i \"{fileInfo.Path}\" ");
+            builder.Append($"-i \"{path}\" ");
 
-            var videoStream = fileInfo.VideoStreams.First();
-            builder.Append($"--vpp-subburn filename=\"{subtitlePath}\",charcode=utf-8,scale={videoStream.Width * 1.0 / 1920} ");
+            builder.Append($"--vpp-subburn filename=\"{subtitlePath}\",charcode=utf-8 ");
 
             builder.Append($"--max-bitrate {subtitleSetting.MaxBitrate} ");
 
