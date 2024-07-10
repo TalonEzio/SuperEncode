@@ -5,7 +5,6 @@ using SuperEncode.Wpf.ViewModels;
 using SuperEncode.Wpf.Windows;
 using SuperEncode.Wpf.Services;
 using System.Text.Json;
-using SuperEncode.Wpf.Extensions;
 using SuperEncode.Wpf.Models;
 
 namespace SuperEncode.Wpf

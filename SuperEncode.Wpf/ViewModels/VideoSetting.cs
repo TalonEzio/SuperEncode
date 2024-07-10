@@ -2,7 +2,6 @@
 
 namespace SuperEncode.Wpf.ViewModels
 {
-
     public partial class VideoSetting : ObservableObject
     {
         [ObservableProperty]
@@ -17,8 +16,6 @@ namespace SuperEncode.Wpf.ViewModels
         [ObservableProperty]
         private bool _scanDeep;
 
-        [ObservableProperty]
-        private bool _fansubMode;
     }
 
 }

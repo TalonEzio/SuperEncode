@@ -35,7 +35,9 @@ namespace SuperEncode.Wpf.Services
             return outputFile;
         }
 
-        private static string BuildNvEncCArguments(string path, string outputFile, string subtitlePath, SubtitleSetting subtitleSetting, VideoSetting encodeSetting)
+        private static string BuildNvEncCArguments(
+            string path, string outputFile, string subtitlePath, 
+            SubtitleSetting subtitleSetting, VideoSetting encodeSetting)
         {
             var builder = new StringBuilder();
             builder.Append($" --avsw --codec h264 ");

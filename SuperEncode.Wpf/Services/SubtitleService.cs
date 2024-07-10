@@ -43,7 +43,7 @@ namespace SuperEncode.Wpf.Services
             var suffixList = new List<string> { "" };
             suffixList.AddRange(suffixString.Split(',').Where(x => !string.IsNullOrEmpty(x)));
 
-            string[] subtitleExtensions = [".ass", ".srt", ".vtt"];
+            string[] subtitleExtensions = [".ass", ".srt", ".vtt",".sup"];
 
             Debug.WriteLine(subtitleDirectory);
             foreach (var subtitleExtension in subtitleExtensions)
@@ -184,7 +184,6 @@ namespace SuperEncode.Wpf.Services
             return result;
         }
 
-
         public async Task UpdateAssStyle(string filePath, SubtitleSetting subtitleSetting)
         {
 
@@ -238,7 +237,7 @@ namespace SuperEncode.Wpf.Services
                 inputContent.IndexOf(beginDialogueString, StringComparison.OrdinalIgnoreCase);
 
 
-            var endDialogueIndex = inputContent.IndexOf("\n", beginDialogueIndex + beginDialogueString.Length + 1, StringComparison.OrdinalIgnoreCase);
+            var endDialogueIndex = inputContent.IndexOf("\n", beginDialogueIndex + beginDialogueString.Length, StringComparison.OrdinalIgnoreCase);
             endDialogueIndex = inputContent.IndexOf("\n", endDialogueIndex + 1, StringComparison.OrdinalIgnoreCase);
 
             var allDialogueFromSubtitles = inputContent[(endDialogueIndex + 1)..];

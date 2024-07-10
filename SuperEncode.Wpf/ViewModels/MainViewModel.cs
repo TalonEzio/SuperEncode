@@ -64,36 +64,17 @@ namespace SuperEncode.Wpf.ViewModels
 
         }
 
-        private async Task SaveConfigToFile(string configPath)
+
+        [RelayCommand]
+        public void ScanDeep()
         {
-            if (File.Exists(configPath))
-            {
-                File.Delete(configPath);
-            }
-            await using var fileStream = new FileStream(configPath, FileMode.CreateNew);
-            await using var writerStream = new StreamWriter(fileStream, Encoding.Unicode);
-
-            var fontSearchText = SubtitleSetting.GetFontName();
-
-            if (fontSearchText.Contains("Bold")) SubtitleSetting.FontSearchText = fontSearchText.Replace("Bold", "").TrimEnd();
-
-
-            var settings = new SettingJson()
-            {
-                VideoSetting = VideoSetting,
-                SubtitleSetting = SubtitleSetting,
-            };
-            
-            var json = JsonSerializer.Serialize(settings);
-            await writerStream.WriteAsync(json);
-            writerStream.Close();
-            fileStream.Close();
+            UpdateFileList(VideoSetting.InputFolder);
         }
+        private bool CanRunEncode() => CanRun;
 
-        private bool CanRunEncode(object? arg) => CanRun;
 
         [RelayCommand(CanExecute = nameof(CanRunEncode))]
-        private async Task RunEncode(object? obj)
+        private async Task RunEncode()
         {
             UpdateFileList(VideoSetting.InputFolder);
 
@@ -135,35 +116,6 @@ namespace SuperEncode.Wpf.ViewModels
             SuccessCount = 0;
         }
 
-        async Task ProcessFile(string file)
-        {
-            if (!File.Exists(file))
-            {
-                ShowErrorMessage($"Không tìm thấy file {Path.GetFileName(file)}, vui lòng xem lại!");
-                return;
-            }
-
-            SuccessPercent = 0;
-
-            var outputVideoFile =
-                await videoService.EncodeVideoWithNVencC(
-                file, SubtitleSetting, VideoSetting);
-
-            if (new FileInfo(outputVideoFile).Length == 0)
-            {
-                ShowErrorMessage($"Encode lỗi {Path.GetFileName(file)}, vui lòng xem lại!");
-            }
-            else
-            {
-                SuccessPercent = 100;
-            }
-        }
-
-        private static void ShowErrorMessage(string message)
-        {
-            MessageBox.Show(message, "Thống báo", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
-        }
-
         [RelayCommand]
         private void Reset()
         {
@@ -172,6 +124,9 @@ namespace SuperEncode.Wpf.ViewModels
             Files.Clear();
 
             CanRun = Files.Any();
+
+            RunEncodeCommand.NotifyCanExecuteChanged();
+
         }
 
         [RelayCommand]
@@ -199,6 +154,32 @@ namespace SuperEncode.Wpf.ViewModels
             UpdateFileList(VideoSetting.InputFolder);
         }
 
+
+        private async Task SaveConfigToFile(string configPath)
+        {
+            if (File.Exists(configPath))
+            {
+                File.Delete(configPath);
+            }
+            await using var fileStream = new FileStream(configPath, FileMode.CreateNew);
+            await using var writerStream = new StreamWriter(fileStream, Encoding.Unicode);
+
+            var fontSearchText = SubtitleSetting.GetFontName();
+
+            if (fontSearchText.Contains("Bold")) SubtitleSetting.FontSearchText = fontSearchText.Replace("Bold", "").TrimEnd();
+
+
+            var settings = new SettingJson()
+            {
+                VideoSetting = VideoSetting,
+                SubtitleSetting = SubtitleSetting,
+            };
+
+            var json = JsonSerializer.Serialize(settings);
+            await writerStream.WriteAsync(json);
+            writerStream.Close();
+            fileStream.Close();
+        }
         private IEnumerable<string> ScanFiles(string path)
         {
             if (!Directory.Exists(path)) return [];
@@ -222,17 +203,7 @@ namespace SuperEncode.Wpf.ViewModels
             }
 
             CanRun = Files.Any();
-
-        }
-        private static List<FontFamily> LoadFonts(string filterName)
-        {
-            var installedFonts = Fonts.GetFontFamilies(FontDirectory)
-                .Where(x =>
-                {
-                    var fontName = x.Source.Split("#")[^1];
-                    return string.IsNullOrEmpty(filterName) || fontName.Contains(filterName, StringComparison.OrdinalIgnoreCase);
-                }).ToList();
-            return installedFonts;
+            RunEncodeCommand.NotifyCanExecuteChanged();
         }
 
         [RelayCommand]
@@ -271,9 +242,50 @@ namespace SuperEncode.Wpf.ViewModels
             return Task.CompletedTask;
         }
 
+
+        async Task ProcessFile(string file)
+        {
+            if (!File.Exists(file))
+            {
+                ShowErrorMessage($"Không tìm thấy file {Path.GetFileName(file)}, vui lòng xem lại!");
+                return;
+            }
+
+            SuccessPercent = 0;
+
+            var outputVideoFile =
+                await videoService.EncodeVideoWithNVencC(
+                    file, SubtitleSetting, VideoSetting);
+
+            if (new FileInfo(outputVideoFile).Length == 0)
+            {
+                ShowErrorMessage($"Encode lỗi {Path.GetFileName(file)}, vui lòng xem lại!");
+            }
+            else
+            {
+                SuccessPercent = 100;
+            }
+        }
+
+        private static void ShowErrorMessage(string message)
+        {
+            MessageBox.Show(message, "Thống báo", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
+        }
         private void VideoEventHandler(object? sender, VideoProcessEventArgs e)
         {
             SuccessPercent = e.Percentage;
         }
+
+        private static List<FontFamily> LoadFonts(string filterName)
+        {
+            var installedFonts = Fonts.GetFontFamilies(FontDirectory)
+                .Where(x =>
+                {
+                    var fontName = x.Source.Split("#")[^1];
+                    return string.IsNullOrEmpty(filterName) || fontName.Contains(filterName, StringComparison.OrdinalIgnoreCase);
+                }).ToList();
+            return installedFonts;
+        }
+
     }
 }
