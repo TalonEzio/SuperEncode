@@ -190,11 +190,12 @@ namespace SuperEncode.Wpf.Services
             var resultBuilder = new StringBuilder();
 
             var templatePath = Path.Combine(BasePath, "AssStyles", "template.ass");
-            var templateContent = await File.ReadAllTextAsync(templatePath);
+
+            var outputContent = await File.ReadAllTextAsync(templatePath);
 
             var inputContent = await File.ReadAllTextAsync(filePath);
 
-            templateContent = templateContent
+            outputContent = outputContent
                 .Replace("[[[PlayResX]]]", "1920")
                 .Replace("[[[PlayResY]]]", "1080")
                 .Replace("[[[Website]]]", subtitleSetting.Website.ToUpper())
@@ -204,14 +205,60 @@ namespace SuperEncode.Wpf.Services
 
             const string beginStyleString = "[V4+ Styles]";
 
-            var beginTemplateStyleIndex = templateContent.IndexOf(beginStyleString, StringComparison.OrdinalIgnoreCase);
+            
+            #region Get All Dialogue From Subtitle
 
-            var endTemplateStyleIndex = templateContent.IndexOf("\n", beginTemplateStyleIndex, StringComparison.Ordinal);
-            endTemplateStyleIndex = templateContent.IndexOf("\n", endTemplateStyleIndex + 1, StringComparison.Ordinal);
+            const string beginEventString = "[Events]";
+
+            var beginEventIndex =
+                inputContent.IndexOf(beginEventString, StringComparison.OrdinalIgnoreCase);
+
+            var endEventIndex = inputContent.IndexOf("\n", beginEventIndex + beginEventString.Length, StringComparison.OrdinalIgnoreCase);
+            endEventIndex += 1;//skip \n
+
+            var beginDialogueIndex = inputContent.IndexOf("\n", endEventIndex + 1, StringComparison.OrdinalIgnoreCase);
+            beginDialogueIndex += 1; //skip \n
+
+            var allDialogueFromSubtitles = inputContent[beginDialogueIndex ..];
+
+            #endregion
+
+            #region Insert Another Style To Output File
+
+            var beginInputStyleIndex = inputContent.IndexOf(beginStyleString, StringComparison.OrdinalIgnoreCase);
+
+
+            var endInputStyleIndex = inputContent.IndexOf("\n", beginInputStyleIndex, StringComparison.OrdinalIgnoreCase);
+
+            var beginInputEventIndex = inputContent.IndexOf(beginEventString, StringComparison.OrdinalIgnoreCase);
+
+            var inputStyleArray = 
+                inputContent[(endInputStyleIndex + 1)..(beginInputEventIndex)]
+                    .Split("\n")
+                    .Where(style => style.StartsWith("Style")).ToList();
+
+
+
+            var beginTemplateEventIndex = outputContent.IndexOf(beginEventString, StringComparison.OrdinalIgnoreCase);
 
             if (subtitleSetting.OverrideStyleDefault)
             {
-                var defaultStyle = ReadStyleFromLine(FindStyleLine(templateContent, "Default"));
+                var defaultStyle = inputStyleArray.FirstOrDefault(x => x.StartsWith("Style: Default,"));
+                if (defaultStyle != null)
+                {
+                    inputStyleArray.Remove(defaultStyle);
+                }
+            }
+
+            var inputStyleString = string.Join("\n", inputStyleArray);
+
+            outputContent = outputContent.Insert(beginTemplateEventIndex - 2, inputStyleString);
+
+            #endregion
+
+            if (subtitleSetting.OverrideStyleDefault)
+            {
+                var defaultStyle = ReadStyleFromLine(FindStyleLine(outputContent, "Default"));
 
                 defaultStyle.FontName = subtitleSetting.GetFontName();
                 defaultStyle.FontSize = subtitleSetting.FontSize;
@@ -221,47 +268,12 @@ namespace SuperEncode.Wpf.Services
                 defaultStyle.StrikeOut = subtitleSetting.Strikeout;
                 defaultStyle.Outline = subtitleSetting.OutLine;
 
-                var beginDefaultStyle = templateContent.IndexOf("Style: Default", StringComparison.OrdinalIgnoreCase);
+                beginEventIndex = outputContent.IndexOf(beginEventString, StringComparison.OrdinalIgnoreCase);
 
-                var endDefaultStyle =
-                    templateContent.IndexOf("\n", beginDefaultStyle, StringComparison.OrdinalIgnoreCase);
-
-                templateContent = templateContent.Remove(beginDefaultStyle, endDefaultStyle - beginDefaultStyle);
-                templateContent = templateContent.Insert(endTemplateStyleIndex + 1, defaultStyle.ToString());
+                outputContent = outputContent.Insert(beginEventIndex - 1, defaultStyle.ToString());
             }
 
-
-            const string beginDialogueString = "[Events]";
-
-            var beginDialogueIndex =
-                inputContent.IndexOf(beginDialogueString, StringComparison.OrdinalIgnoreCase);
-
-
-            var endDialogueIndex = inputContent.IndexOf("\n", beginDialogueIndex + beginDialogueString.Length, StringComparison.OrdinalIgnoreCase);
-            endDialogueIndex = inputContent.IndexOf("\n", endDialogueIndex + 1, StringComparison.OrdinalIgnoreCase);
-
-            var allDialogueFromSubtitles = inputContent[(endDialogueIndex + 1)..];
-
-            var beginInputStyleIndex = inputContent.IndexOf(beginStyleString, StringComparison.OrdinalIgnoreCase);
-
-            var endInputStyleIndex = inputContent.IndexOf("\n", beginInputStyleIndex, StringComparison.OrdinalIgnoreCase);
-
-            var beginInputEventIndex = inputContent.IndexOf("[Events]", StringComparison.OrdinalIgnoreCase);
-            var inputStyleString = inputContent.Substring(endInputStyleIndex + 1, beginInputEventIndex - endInputStyleIndex - 1).TrimEnd('\n') + '\n';
-
-            var beginTemplateEventIndex = templateContent.IndexOf("[Events]", StringComparison.OrdinalIgnoreCase);
-
-            if (subtitleSetting.OverrideStyleDefault)
-            {
-                var beginDefaultStyleIndex =
-                    inputStyleString.IndexOf("Style: Default", StringComparison.OrdinalIgnoreCase);
-                var endDefaultStyleIndex = inputStyleString.IndexOf("\n", beginDefaultStyleIndex, StringComparison.OrdinalIgnoreCase);
-
-                inputStyleString = inputStyleString.Remove(beginDefaultStyleIndex, endDefaultStyleIndex - beginDefaultStyleIndex);
-            }
-            templateContent = templateContent.Insert(beginTemplateEventIndex - 2, inputStyleString);
-
-            resultBuilder.AppendLine(templateContent);
+            resultBuilder.AppendLine(outputContent);
 
             resultBuilder.Append(allDialogueFromSubtitles);
 

@@ -28,15 +28,39 @@ namespace SuperEncode.Wpf
             {
                 var mainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
 
-                var settingJsonContent = File.ReadAllText(Path.Combine(_applicationDataPath, "SuperEncode-Config.json"));
+                var settingFilePath = Path.Combine(_applicationDataPath, "SuperEncode-Config.json");
 
-                if (!string.IsNullOrEmpty(settingJsonContent))
+                if (!File.Exists(settingFilePath))
                 {
-                    var settings = JsonSerializer.Deserialize<SettingJson>(settingJsonContent);
-
-                    mainViewModel.SubtitleSetting = settings?.SubtitleSetting ?? new SubtitleSetting();
-                    mainViewModel.VideoSetting = settings?.VideoSetting ?? new VideoSetting();
+                    File.Copy(Path.Combine(AppContext.BaseDirectory, "AssStyles", "SuperEncode-Config.Default.json"), settingFilePath);
                 }
+
+                read:
+                var settingJsonContent = File.ReadAllText(settingFilePath);
+                try
+                {
+                    if (!string.IsNullOrEmpty(settingJsonContent))
+                    {
+                        var settings = JsonSerializer.Deserialize<SettingJson>(settingJsonContent);
+
+                        mainViewModel.SubtitleSetting = settings?.SubtitleSetting ?? new SubtitleSetting();
+                        mainViewModel.VideoSetting = settings?.VideoSetting ?? new VideoSetting();
+                    }
+                }
+                catch
+                {
+                    MessageBox.Show("Lỗi không đọc được cấu hình.\nChuyển qua đọc cấu hình mặc định", "Lỗi đọc cấu hình",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+
+                    if (File.Exists(settingFilePath))
+                    {
+                        File.Delete(settingFilePath);
+                    }
+                    File.Copy(Path.Combine(AppContext.BaseDirectory, "AssStyles", "SuperEncode-Config.Default.json"),
+                        settingFilePath);
+                    goto read;
+                }
+
 
                 mainWindow.Show();
             }

@@ -3,21 +3,20 @@
     "EnableHdr": false,
     "DeleteAfterEncode": false,
     "InputFolder": "",
-    "ScanDeep": false,
-    "FansubMode": false
+    "ScanDeep": false
   },
   "SubtitleSetting": {
     "OverrideStyleDefault": true,
-    "FontSearchText": null,
-    "Bold": false,
+    "FontSearchText": "sign",
+    "Bold": true,
     "Italic": false,
     "Underline": false,
     "Strikeout": false,
-    "FontSize": 123,
+    "FontSize": 72,
     "MaxBitrate": 24000,
     "OutLine": 1,
     "Website": "animew.org",
-    "Marquee": "Phim c\u1EADp nh\u1EADt l\u00FAc 00:00-00:30 th\u1EE9 hai h\u00E0ng tu\u1EA7n t\u1EA1i animew.org. Ch\u00FAc c\u00E1c b\u1EA1n xem phim vui v\u1EBB!",
+    "Marquee": "B\u1EA1n \u0111ang xem \u0022T\u00EAn phim v\u00E0o \u0111\u00E2y - Ng\u1EAFn qu\u00E1 th\u00EC th\u00EAm t\u00EAn kh\u00E1c\u0022 t\u1EA1i animew.org. Ch\u00FAc c\u00E1c b\u1EA1n xem phim vui v\u1EBB!",
     "SuffixSubtitle": ".vi,.vie",
     "SubtitleInFile": true
   }

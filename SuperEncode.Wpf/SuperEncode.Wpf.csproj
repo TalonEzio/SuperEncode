@@ -30,8 +30,23 @@
 		<None Update="AssStyles\template.ass">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="SuperEncode-Config.Default.json">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<None Update="Fonts\Signika-Bold.ttf">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Fonts\Signika-Light.ttf">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Fonts\Signika-Medium.ttf">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Fonts\Signika-Regular.ttf">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Fonts\Signika-SemiBold.ttf">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="AssStyles\SuperEncode-Config.Default.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="Fonts\BowlbyOneSC-Regular.ttf">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -40,7 +55,7 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Update="Tools\ffmpeg.exe">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="Tools\NVEncC\avcodec-60.dll">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

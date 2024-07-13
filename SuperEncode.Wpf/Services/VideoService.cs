@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -40,7 +41,7 @@ namespace SuperEncode.Wpf.Services
             SubtitleSetting subtitleSetting, VideoSetting encodeSetting)
         {
             var builder = new StringBuilder();
-            builder.Append($" --avsw --codec h264 ");
+            builder.Append(" --avsw --codec h264 ");
             builder.Append($"-i \"{path}\" ");
 
             builder.Append($"--vpp-subburn filename=\"{subtitlePath}\",charcode=utf-8 ");
@@ -84,7 +85,7 @@ namespace SuperEncode.Wpf.Services
                 if (!match.Success) continue;
 
                 var percentageString = match.Groups[1].Value;
-                var percentage = double.Parse(percentageString);
+                var percentage = double.Parse(percentageString, new CultureInfo("en-US"));
 
                 Debug.WriteLine("Info: Process: " + percentage + "%");
 
