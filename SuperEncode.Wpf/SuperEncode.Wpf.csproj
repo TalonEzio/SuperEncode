@@ -28,7 +28,22 @@
 
 	<ItemGroup>
 		<None Update="AssStyles\template.ass">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Fonts\Signika-Bold.ttf">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Fonts\Signika-Light.ttf">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Fonts\Signika-Medium.ttf">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Fonts\Signika-Regular.ttf">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="Fonts\Signika-SemiBold.ttf">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Update="Fonts\Signika-Bold.ttf">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
