@@ -163,12 +163,7 @@ namespace SuperEncode.Wpf.ViewModels
             }
             await using var fileStream = new FileStream(configPath, FileMode.CreateNew);
             await using var writerStream = new StreamWriter(fileStream, Encoding.Unicode);
-
-            var fontSearchText = SubtitleSetting.GetFontName();
-
-            if (fontSearchText.Contains("Bold")) SubtitleSetting.FontSearchText = fontSearchText.Replace("Bold", "").TrimEnd();
-
-
+            
             var settings = new SettingJson()
             {
                 VideoSetting = VideoSetting,
