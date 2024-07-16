@@ -7,10 +7,13 @@ using System.Windows;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LibVLCSharp.Shared;
+using LibVLCSharp.WPF;
 using Microsoft.Win32;
 using SuperEncode.Wpf.Extensions;
 using SuperEncode.Wpf.Services;
 using SuperEncode.Wpf.Models;
+using SuperEncode.Wpf.UserControls;
 
 namespace SuperEncode.Wpf.ViewModels
 {
@@ -39,11 +42,11 @@ namespace SuperEncode.Wpf.ViewModels
 
         public ObservableCollection<string> Files { get; set; } = [];
         public ObservableCollection<FontFamily> FontFamilies { get; set; } = [];
-        
+
         public Stopwatch DurationStopwatch { get; } = new();
 
         [RelayCommand]
-        private async Task LoadedForm(object obj)
+        private async Task LoadedForm()
         {
             await LoadAsync();
         }
@@ -64,6 +67,13 @@ namespace SuperEncode.Wpf.ViewModels
 
         }
 
+        [RelayCommand]
+        public void Test(UcVideoPlayer videoPlayer)
+        {
+            var file = "C:\\Users\\talon\\Downloads\\Kimi no Na Wa. (Your Name.).ass";
+            videoPlayer.VideoUrl = Path.ChangeExtension(file, ".mkv");
+            videoPlayer.SubtitleUrl = file;
+        }
 
         [RelayCommand]
         public void ScanDeep()
@@ -163,7 +173,7 @@ namespace SuperEncode.Wpf.ViewModels
             }
             await using var fileStream = new FileStream(configPath, FileMode.CreateNew);
             await using var writerStream = new StreamWriter(fileStream, Encoding.Unicode);
-            
+
             var settings = new SettingJson()
             {
                 VideoSetting = VideoSetting,

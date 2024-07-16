@@ -1,15 +1,34 @@
 ﻿<Application
-    x:Class="SuperEncode.Wpf.App"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:converters="clr-namespace:SuperEncode.Wpf.Converters">
-    <Application.Resources>
+	x:Class="SuperEncode.Wpf.App"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:converters="clr-namespace:SuperEncode.Wpf.Converters"
+	xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+	<Application.Resources>
 
-        <ResourceDictionary>
-            <converters:FontFamilyNameConverter x:Key="FontFamilyNameConverter" />
-            <converters:FontTypeViewConverter x:Key="FontTypeViewConverter" />
-            <converters:FontFamilyConverter x:Key="FontFamilyConverter" />
-            <converters:SubtitleInFileConverter x:Key="SubtitleInFileConverter" />
-        </ResourceDictionary>
-    </Application.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+
+				<!--<materialDesign:BundledTheme
+					BaseTheme="Light"
+					PrimaryColor="DeepPurple"
+					SecondaryColor="Lime" />-->
+
+				<ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/materialdesign3.defaults.xaml" />
+
+				<ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/materialdesigntheme.light.xaml" />
+
+				<ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/Recommended/Primary/MaterialDesignColor.DeepPurple.xaml" />
+				<ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/Recommended/Secondary/MaterialDesignColor.Lime.xaml" />
+
+			</ResourceDictionary.MergedDictionaries>
+
+			<converters:FontFamilyNameConverter x:Key="FontFamilyNameConverter" />
+			<converters:FontTypeViewConverter x:Key="FontTypeViewConverter" />
+			<converters:FontFamilyConverter x:Key="FontFamilyConverter" />
+			<converters:SubtitleInFileConverter x:Key="SubtitleInFileConverter" />
+
+		</ResourceDictionary>
+
+	</Application.Resources>
 </Application>

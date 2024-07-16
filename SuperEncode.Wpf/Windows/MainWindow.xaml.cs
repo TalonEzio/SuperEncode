@@ -1,4 +1,7 @@
-﻿using SuperEncode.Wpf.ViewModels;
+﻿using System.IO;
+using System.Windows;
+using SuperEncode.Wpf.UserControls;
+using SuperEncode.Wpf.ViewModels;
 
 namespace SuperEncode.Wpf.Windows
 {
@@ -9,5 +12,6 @@ namespace SuperEncode.Wpf.Windows
             InitializeComponent();
             DataContext = mainViewModel;
         }
+
     }
 }

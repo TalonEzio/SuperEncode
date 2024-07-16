@@ -5,6 +5,7 @@ using SuperEncode.Wpf.ViewModels;
 using SuperEncode.Wpf.Windows;
 using SuperEncode.Wpf.Services;
 using System.Text.Json;
+using LibVLCSharp.Shared;
 using SuperEncode.Wpf.Models;
 
 namespace SuperEncode.Wpf
@@ -24,7 +25,7 @@ namespace SuperEncode.Wpf
 
             var mainWindow = serviceProvider.GetRequiredService<MainWindow>();
 
-            try
+            //try
             {
                 var mainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
 
@@ -60,14 +61,16 @@ namespace SuperEncode.Wpf
                         settingFilePath);
                     goto read;
                 }
-
+                
 
                 mainWindow.Show();
+
+
             }
-            catch (Exception e)
-            {
-                MessageBox.Show(e.Message);
-            }
+            //catch (Exception e)
+            //{
+            //    MessageBox.Show(e.Message);
+            //}
         }
 
         private void ScanConfig()
