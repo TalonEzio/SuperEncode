@@ -2,11 +2,12 @@
 
 namespace SuperEncode.Wpf.ViewModels
 {
-    public partial class VideoPlayerViewModel : ObservableObject
+    public partial class EncodeVideoInput :ObservableObject
     {
         [ObservableProperty]
-        private long currentTime;
+        private string _filePath = string.Empty;
+
         [ObservableProperty]
-        private long totalTime;
+        private double _percent;
     }
 }

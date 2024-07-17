@@ -3,41 +3,46 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using SuperEncode.Wpf.Extensions;
 using SuperEncode.Wpf.ViewModels;
 
 namespace SuperEncode.Wpf.Services
 {
     public class VideoService(SubtitleService subtitleService)
     {
-        private event EventHandler<VideoProcessEventArgs>? VideoProcessEventHandler;
 
-        public event EventHandler<VideoProcessEventArgs> VideoEventHandler
-        {
-            add => VideoProcessEventHandler += value;
-            remove => VideoProcessEventHandler -= value;
-        }
         private static readonly string BasePath = AppContext.BaseDirectory;
 
         public async Task<string> EncodeVideoWithNVencC(
-            string path, SubtitleSetting subtitleSetting, VideoSetting encodeSetting)
+            EncodeVideoInput input, 
+            SubtitleSetting subtitleSetting, VideoSetting encodeSetting,
+            CancellationToken cancellation = default)
         {
-            var subtitlePath = await subtitleService.GetSubtitleFromVideo(path, subtitleSetting);
 
-            var inputFile = path;
+            var subtitlePath = await subtitleService.GetSubtitleFromVideo(input.FilePath, subtitleSetting, cancellation);
 
-            var outputFile = Path.ChangeExtension(inputFile, ".mp4");
+            if (string.IsNullOrEmpty(subtitlePath))
+            {
+                return string.Empty;
+            }
+            var inputFilePath = input.FilePath;
 
-            var arguments = BuildNvEncCArguments(path, outputFile, subtitlePath, subtitleSetting, encodeSetting);
+            var outputFilePath = Path.ChangeExtension(inputFilePath, ".mp4");
 
-            await RunNvEncC(arguments);
+            var arguments = BuildNvEncCArguments(inputFilePath, outputFilePath, subtitlePath, subtitleSetting, encodeSetting);
 
-            File.Delete(subtitlePath);
-            return outputFile;
+            outputFilePath = await RunNvEncC(input, outputFilePath, arguments, cancellation);
+
+            if (File.Exists(subtitlePath))
+            {
+                File.Delete(subtitlePath);
+
+            }
+            return outputFilePath;
         }
 
+
         private static string BuildNvEncCArguments(
-            string path, string outputFile, string subtitlePath, 
+            string path, string outputFile, string subtitlePath,
             SubtitleSetting subtitleSetting, VideoSetting encodeSetting)
         {
             var builder = new StringBuilder();
@@ -58,7 +63,7 @@ namespace SuperEncode.Wpf.Services
         }
 
 
-        public async Task RunNvEncC(string arguments)
+        public async Task<string> RunNvEncC(EncodeVideoInput input, string outputPath, string arguments, CancellationToken cancellationToken = default)
         {
             var nVencCPath = Path.Combine(BasePath, "Tools", "NVEncC", "NVEncC.exe");
 
@@ -67,36 +72,57 @@ namespace SuperEncode.Wpf.Services
                 FileName = nVencCPath,
                 Arguments = arguments,
                 UseShellExecute = false,
-                CreateNoWindow = true, 
+                CreateNoWindow = true,
                 RedirectStandardError = true
             };
 
             using var process = new Process();
             process.StartInfo = startInfo;
             process.EnableRaisingEvents = true;
+
             process.Start();
 
-            while (await process.StandardError.ReadLineAsync() is { } processOutput)
+            try
             {
-                var regex = new Regex(@"\[(\d+\.\d+)%\]");
-
-                var match = regex.Match(processOutput);
-
-                if (!match.Success) continue;
-
-                var percentageString = match.Groups[1].Value;
-                var percentage = double.Parse(percentageString, new CultureInfo("en-US"));
-
-                Debug.WriteLine("Info: Process: " + percentage + "%");
-
-                var callbackValue = new VideoProcessEventArgs()
+                while (!cancellationToken.IsCancellationRequested && await process.StandardError.ReadLineAsync(cancellationToken) is { } processOutput)
                 {
-                    Percentage = percentage
-                };
+                    var regex = new Regex(@"\[(\d+\.\d+)%\]");
 
-                VideoProcessEventHandler?.Invoke(process, callbackValue);
+                    var match = regex.Match(processOutput);
+
+                    if (!match.Success) continue;
+
+                    var percentageString = match.Groups[1].Value;
+                    var percentage = double.Parse(percentageString, new CultureInfo("en-US"));
+
+                    Debug.WriteLine("Info: Process: " + percentage + "%");
+
+
+                    input.Percent = percentage;
+
+                }
+
+                await process.WaitForExitAsync(cancellationToken);
             }
-            await process.WaitForExitAsync();
+            catch (OperationCanceledException)
+            {
+                input.Percent = 0;
+
+                if (!process.HasExited)
+                {
+                    process.Kill();
+
+                    // ReSharper disable once MethodSupportsCancellation
+                    await Task.Delay(100).ConfigureAwait(false);
+                    if (File.Exists(outputPath))
+                    {
+                        File.Delete(outputPath);
+                        outputPath = "";
+                    }
+                }
+            }
+
+            return outputPath;
         }
     }
 }

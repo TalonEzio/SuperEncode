@@ -12,24 +12,36 @@ namespace SuperEncode.Wpf.Services
     {
         private static readonly string BasePath = AppContext.BaseDirectory;
         public async Task<string> GetSubtitleFromVideo(
-            string path, SubtitleSetting subtitleSetting)
+            string path, SubtitleSetting subtitleSetting, CancellationToken cancellation = default)
         {
-            var inputFile = path;
-            string subtitlePath;
-            if (subtitleSetting.SubtitleInFile)
+            var subtitlePath = string.Empty;
+            try
             {
-                subtitlePath = await ExportSubtitleFromVideo(inputFile, enableCmd: false);
-            }
-            else
-            {
-                subtitlePath = await ScanSubtitleFromFolder(inputFile, subtitleSetting.SuffixSubtitle);
+                while (!cancellation.IsCancellationRequested)
+                {
+                    if (subtitleSetting.SubtitleInFile)
+                    {
+                        subtitlePath = await ExportSubtitleFromVideo(path, enableCmd: false);
+                    }
+                    else
+                    {
+                        subtitlePath = await ScanSubtitleFromFolder(path, subtitleSetting.SuffixSubtitle);
 
-            }
+                    }
 
-            if(!string.IsNullOrEmpty(subtitleSetting.Marquee) && !string.IsNullOrEmpty(subtitleSetting.Website))
+                    if (!string.IsNullOrEmpty(subtitleSetting.Marquee) && !string.IsNullOrEmpty(subtitleSetting.Website))
+                    {
+                        await UpdateAssStyle(subtitlePath, subtitleSetting);
+                    }
+
+                    return subtitlePath;
+                }
+            }
+            catch (OperationCanceledException)
             {
-                await UpdateAssStyle(subtitlePath, subtitleSetting);
-            }    
+                Debug.WriteLine("Cancel from get subtitle");
+                if (File.Exists(subtitlePath)) File.Delete(subtitlePath);
+            }
             return subtitlePath;
         }
 
@@ -43,7 +55,7 @@ namespace SuperEncode.Wpf.Services
             var suffixList = new List<string> { "" };
             suffixList.AddRange(suffixString.Split(',').Where(x => !string.IsNullOrEmpty(x)));
 
-            string[] subtitleExtensions = [".ass", ".srt", ".vtt",".sup"];
+            string[] subtitleExtensions = [".ass", ".srt", ".vtt"];
 
             Debug.WriteLine(subtitleDirectory);
             foreach (var subtitleExtension in subtitleExtensions)
@@ -205,7 +217,7 @@ namespace SuperEncode.Wpf.Services
 
             const string beginStyleString = "[V4+ Styles]";
 
-            
+
             #region Get All Dialogue From Subtitle
 
             const string beginEventString = "[Events]";
@@ -219,7 +231,7 @@ namespace SuperEncode.Wpf.Services
             var beginDialogueIndex = inputContent.IndexOf("\n", endEventIndex + 1, StringComparison.OrdinalIgnoreCase);
             beginDialogueIndex += 1; //skip \n
 
-            var allDialogueFromSubtitles = inputContent[beginDialogueIndex ..];
+            var allDialogueFromSubtitles = inputContent[beginDialogueIndex..];
 
             #endregion
 
@@ -232,7 +244,7 @@ namespace SuperEncode.Wpf.Services
 
             var beginInputEventIndex = inputContent.IndexOf(beginEventString, StringComparison.OrdinalIgnoreCase);
 
-            var inputStyleArray = 
+            var inputStyleArray =
                 inputContent[(endInputStyleIndex + 1)..(beginInputEventIndex)]
                     .Split("\n")
                     .Where(style => style.StartsWith("Style")).ToList();

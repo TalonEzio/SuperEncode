@@ -30,10 +30,14 @@
 		<PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.122">
 		  <TreatAsUsed>true</TreatAsUsed>
 		</PackageReference>
+		<PackageReference Include="Notification.Wpf" Version="8.0.0" />
 		<PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.20" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Update="AssStyles\sound-success.wav">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 		<None Update="AssStyles\template.ass">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
@@ -68,7 +72,7 @@
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Update="AssStyles\SuperEncode-Config.Default.json">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Update="Fonts\BowlbyOneSC-Regular.ttf">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

@@ -9,10 +9,58 @@
 	d:DesignWidth="800"
 	mc:Ignorable="d">
 	<Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition />
+			<RowDefinition Height="Auto" />
+		</Grid.RowDefinitions>
 		<vlc:VideoView
 			Name="VideoView"
-			HorizontalAlignment="Stretch"
-			VerticalAlignment="Stretch"
-			MediaPlayer="{Binding}" />
+			HorizontalContentAlignment="Stretch"
+			VerticalContentAlignment="Stretch"
+			Background="Black" />
+		<StackPanel
+			Grid.Row="1"
+			Margin="3,20,3,3"
+			HorizontalAlignment="Center"
+			VerticalAlignment="Center"
+			Orientation="Horizontal">
+			<Slider
+				x:Name="Slider"
+				Width="200"
+				Margin="5,5,10,5"
+				Minimum="0"
+				ValueChanged="RangeBase_OnValueChanged" />
+			<Button
+				Name="BtnPause"
+				Margin="0,0,5,0"
+				Click="BtnPause_OnClick">
+				Pause
+			</Button>
+			<Button
+				Name="BtnContinue"
+				Margin="0,0,5,0"
+				Click="BtnContinue_OnClick">
+				Continue
+			</Button>
+			<Button
+				Name="BtnPrev"
+				Margin="0,0,5,0"
+				Click="BtnPrev_OnClick">
+				&lt;&lt; 30s
+			</Button>
+			<Button
+				Name="BtnNext"
+				Margin="0,0,5,0"
+				Click="BtnNext_OnClick">
+				&gt;&gt; 30s
+			</Button>
+			<Button
+				Name="BtnStop"
+				Margin="0,0,5,0"
+				Click="BtnStop_OnClick">
+				Stop
+			</Button>
+
+		</StackPanel>
 	</Grid>
 </UserControl>

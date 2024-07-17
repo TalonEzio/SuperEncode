@@ -1,6 +1,4 @@
-﻿using System.IO;
-using System.Windows;
-using SuperEncode.Wpf.UserControls;
+﻿using System.Windows.Input;
 using SuperEncode.Wpf.ViewModels;
 
 namespace SuperEncode.Wpf.Windows
@@ -13,5 +11,12 @@ namespace SuperEncode.Wpf.Windows
             DataContext = mainViewModel;
         }
 
+        //private void MainWindow_OnMouseMove(object sender, MouseEventArgs e)
+        //{
+        //    if (e is { LeftButton: MouseButtonState.Pressed })
+        //    {
+        //        Dispatcher.Invoke(() => Window.DragMove());
+        //    }
+        //}
     }
 }

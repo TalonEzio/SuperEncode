@@ -7,6 +7,7 @@ using SuperEncode.Wpf.Services;
 using System.Text.Json;
 using LibVLCSharp.Shared;
 using SuperEncode.Wpf.Models;
+using Notification.Wpf;
 
 namespace SuperEncode.Wpf
 {
@@ -100,16 +101,19 @@ namespace SuperEncode.Wpf
         {
             ScanConfig();
 
+            IServiceCollection services = new ServiceCollection();
 
-            IServiceCollection service = new ServiceCollection();
 
-            service.AddScoped<MainWindow>();
-            service.AddScoped<SubtitleService>();
-            service.AddScoped<VideoService>();
 
-            service.AddScoped<MainViewModel>();
+            services.AddSingleton<INotificationManager, NotificationManager>();
 
-            return service.BuildServiceProvider();
+            services.AddScoped<MainWindow>();
+            services.AddScoped<SubtitleService>();
+            services.AddScoped<VideoService>();
+
+            services.AddScoped<MainViewModel>();
+
+            return services.BuildServiceProvider();
         }
 
 

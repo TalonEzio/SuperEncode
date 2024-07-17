@@ -6,343 +6,439 @@
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	xmlns:uc="clr-namespace:SuperEncode.Wpf.UserControls"
 	xmlns:viewModel="clr-namespace:SuperEncode.Wpf.ViewModels"
+	x:Name="Window"
 	Title="Encode Anime"
+	HorizontalContentAlignment="Center"
 	d:DataContext="{d:DesignInstance viewModel:MainViewModel}"
-	FontSize="18"
 	Style="{StaticResource MaterialDesignWindow}"
+	WindowStyle="ThreeDBorderWindow"
 	mc:Ignorable="d">
 
 	<b:Interaction.Triggers>
+
 		<b:EventTrigger EventName="Loaded">
 			<b:InvokeCommandAction Command="{Binding Path=LoadedFormCommand}" />
 		</b:EventTrigger>
+
 		<b:EventTrigger EventName="Closing">
 			<b:InvokeCommandAction Command="{Binding Path=ClosingFormCommand}" />
 		</b:EventTrigger>
+
 	</b:Interaction.Triggers>
 
-	<Grid IsEnabled="{Binding EnableWindow}">
-		<StackPanel>
-			<Grid Name="RowInput" Margin="10">
-				<Grid.ColumnDefinitions>
-					<ColumnDefinition />
-					<ColumnDefinition />
-				</Grid.ColumnDefinitions>
+	<Grid>
 
-				<Border
-					Grid.Column="0"
-					Margin="5"
-					Padding="5"
-					BorderBrush="MediumPurple"
-					BorderThickness="1"
-					CornerRadius="20">
+		<Grid Name="RowInput" Margin="10">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition />
+				<ColumnDefinition Width="400" />
+			</Grid.ColumnDefinitions>
+			<Grid.RowDefinitions>
+				<RowDefinition />
+				<RowDefinition Height="Auto" />
+			</Grid.RowDefinitions>
+			<Border
+				Grid.Row="0"
+				Grid.RowSpan="2"
+				Grid.Column="0"
+				MinWidth="400"
+				Margin="5"
+				Padding="5"
+				BorderBrush="MediumPurple"
+				BorderThickness="1"
+				CornerRadius="20">
+				<Grid>
+					<Grid.RowDefinitions>
+						<RowDefinition Height="3*" />
+						<RowDefinition Height="9*" />
+					</Grid.RowDefinitions>
 
-					<StackPanel>
-
-						<StackPanel Margin="10">
-							<TextBox
-								Name="TxtFontName"
-								Padding="10"
-								materialDesign:HintAssist.Hint="Tên font cần tìm"
-								Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-								Text="{Binding SubtitleSetting.FontSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-
-								<b:Interaction.Triggers>
-									<b:EventTrigger EventName="TextChanged">
-										<b:InvokeCommandAction Command="{Binding UpdateFontFamiliesCommand}" CommandParameter="{Binding ElementName=TxtFontName, Path=Text}" />
-									</b:EventTrigger>
-								</b:Interaction.Triggers>
-							</TextBox>
-
-							<ComboBox
-								Name="CmbFont"
-								Margin="0,20,0,0"
-								Padding="10"
-								materialDesign:HintAssist.Hint="Font sử dụng"
-								IsEnabled="{Binding Path=IsChecked, ElementName=OutlinedComboBoxEnabledCheckBox}"
-								ItemsSource="{Binding FontFamilies}"
-								SelectedItem="{Binding SubtitleSetting.FontFamily, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-								Style="{StaticResource MaterialDesignOutlinedComboBox}">
-								<ComboBox.ItemTemplate>
+					<DataGrid
+						Grid.Row="0"
+						AutoGenerateColumns="False"
+						CanUserAddRows="False"
+						CanUserDeleteRows="False"
+						CanUserReorderColumns="True"
+						CanUserSortColumns="True"
+						IsReadOnly="True"
+						ItemsSource="{Binding VideoInputs}">
+						<DataGrid.Columns>
+							<DataGridTemplateColumn Width="8*" Header="File Path">
+								<DataGridTemplateColumn.CellTemplate>
 									<DataTemplate>
-										<TextBlock FontFamily="{Binding Converter={StaticResource FontFamilyConverter}}" Text="{Binding Converter={StaticResource FontFamilyNameConverter}}" />
+										<TextBlock
+											HorizontalAlignment="Left"
+											VerticalAlignment="Center"
+											Text="{Binding FilePath}" />
 									</DataTemplate>
-								</ComboBox.ItemTemplate>
-							</ComboBox>
-						</StackPanel>
+								</DataGridTemplateColumn.CellTemplate>
+							</DataGridTemplateColumn>
 
-						<StackPanel
-							Margin="0,0,0,10"
-							IsEnabled="{Binding SubtitleSetting.OverrideStyleDefault, Mode=TwoWay}"
-							Orientation="Horizontal">
-							<!--<Grid.ColumnDefinitions>
-								<ColumnDefinition />
-								<ColumnDefinition />
-								<ColumnDefinition />
-								<ColumnDefinition />
-							</Grid.ColumnDefinitions>-->
-							<CheckBox
-								Content="Đậm"
-								IsChecked="{Binding SubtitleSetting.Bold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-								Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}" />
+							<DataGridTemplateColumn Width="4*" Header="Progress">
+								<DataGridTemplateColumn.CellTemplate>
+									<DataTemplate>
+										<ProgressBar
+											Maximum="100"
+											Minimum="0"
+											Value="{Binding Percent}" />
+									</DataTemplate>
+								</DataGridTemplateColumn.CellTemplate>
+							</DataGridTemplateColumn>
 
-							<CheckBox
-								Grid.Column="1"
-								Content="Nghiêng"
-								IsChecked="{Binding SubtitleSetting.Italic, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-								Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}" />
+							<DataGridTemplateColumn Header="Actions">
+								<DataGridTemplateColumn.CellTemplate>
+									<DataTemplate>
+										<StackPanel>
+											<Button Command="{Binding DataContext.PlayPreviewCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}">
+												<Button.Content>
+													<StackPanel Orientation="Horizontal">
+														<materialDesign:PackIcon Margin="0,0,3,0" Kind="VideoOutline" />
+														<TextBlock>Preview</TextBlock>
+													</StackPanel>
+												</Button.Content>
+												<Button.CommandParameter>
+													<MultiBinding Converter="{StaticResource MultiValueForDragWindowConverter}">
+														<Binding />
+														<Binding ElementName="VideoPlayer" />
 
-							<CheckBox
-								Grid.Column="2"
-								Content="Gạch chân"
-								IsChecked="{Binding SubtitleSetting.Underline, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-								Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}" />
+													</MultiBinding>
+												</Button.CommandParameter>
+											</Button>
+										</StackPanel>
+									</DataTemplate>
+								</DataGridTemplateColumn.CellTemplate>
+							</DataGridTemplateColumn>
 
-							<CheckBox
-								Grid.Column="3"
-								Content="Gạch ngang"
-								IsChecked="{Binding SubtitleSetting.Strikeout, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-								Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}" />
+						</DataGrid.Columns>
+					</DataGrid>
 
-						</StackPanel>
+					<uc:UcVideoPlayer
+						x:Name="VideoPlayer"
+						Grid.Row="1"
+						Margin="10"
+						HorizontalAlignment="Stretch"
+						VerticalAlignment="Stretch"
+						Background="WhiteSmoke"
+						IsEnabled="{Binding EnableWindow}"
+						SubtitleUrl="{Binding PlayerData.SubtitleUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+						VideoUrl="{Binding PlayerData.VideoUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+				</Grid>
+			</Border>
 
-						<Grid Margin="0,10,0,20">
-							<Grid.ColumnDefinitions>
+			<Border
+				Grid.Row="0"
+				Grid.Column="1"
+				Margin="5"
+				Padding="5"
+				BorderBrush="MediumPurple"
+				BorderThickness="1"
+				CornerRadius="20"
+				IsEnabled="{Binding EnableWindow}">
 
-								<ColumnDefinition />
-								<ColumnDefinition />
-								<ColumnDefinition />
-							</Grid.ColumnDefinitions>
+				<StackPanel>
 
-							<TextBox
-								Margin="0,0,20,0"
-								Padding="5"
-								VerticalAlignment="Center"
-								materialDesign:HintAssist.Hint="Font Size"
-								Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-								Text="{Binding SubtitleSetting.FontSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-							<TextBox
-								Grid.Column="1"
-								Margin="0,0,20,0"
-								Padding="5"
-								VerticalAlignment="Center"
-								materialDesign:HintAssist.Hint="OutLine"
-								Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-								Text="{Binding SubtitleSetting.OutLine, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-							<TextBox
-								Grid.Column="2"
-								Margin="0,0,20,0"
-								Padding="5"
-								VerticalAlignment="Center"
-								materialDesign:HintAssist.Hint="Max Bitrate"
-								Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-								Text="{Binding SubtitleSetting.MaxBitrate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-						</Grid>
-
+					<StackPanel Margin="10">
 						<TextBox
-							Margin="0,0,20,20"
-							Padding="5"
-							VerticalAlignment="Center"
-							materialDesign:HintAssist.Hint="Website"
+							Name="TxtFontName"
+							Padding="10"
+							materialDesign:HintAssist.Hint="Tên font cần tìm"
 							Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-							Text="{Binding SubtitleSetting.Website, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+							Text="{Binding SubtitleSetting.FontSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
 
-						<TextBox
-							Margin="0,0,20,20"
-							Padding="5"
-							VerticalAlignment="Center"
-							materialDesign:HintAssist.Hint="Marquee - Dòng chữ chạy trên video"
-							AcceptsReturn="True"
-							Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-							Text="{Binding SubtitleSetting.Marquee, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-							TextWrapping="Wrap"
-							VerticalScrollBarVisibility="Auto" />
+							<b:Interaction.Triggers>
+								<b:EventTrigger EventName="TextChanged">
+									<b:InvokeCommandAction Command="{Binding UpdateFontFamiliesCommand}" CommandParameter="{Binding ElementName=TxtFontName, Path=Text}" />
+								</b:EventTrigger>
+							</b:Interaction.Triggers>
+						</TextBox>
+
+						<ComboBox
+							Name="CmbFont"
+							Margin="0,20,0,0"
+							Padding="10"
+							materialDesign:HintAssist.Hint="Font sử dụng"
+							ItemsSource="{Binding FontFamilies}"
+							SelectedItem="{Binding SubtitleSetting.FontFamily, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+							Style="{StaticResource MaterialDesignOutlinedComboBox}">
+							<ComboBox.ItemTemplate>
+								<DataTemplate>
+									<TextBlock FontFamily="{Binding Converter={StaticResource FontFamilyConverter}}" Text="{Binding Converter={StaticResource FontFamilyNameConverter}}" />
+								</DataTemplate>
+							</ComboBox.ItemTemplate>
+						</ComboBox>
+					</StackPanel>
+
+					<StackPanel
+						Margin="0,0,0,10"
+						IsEnabled="{Binding SubtitleSetting.OverrideStyleDefault, Mode=TwoWay}"
+						Orientation="Horizontal">
+
+						<CheckBox
+							Content="Đậm"
+							IsChecked="{Binding SubtitleSetting.Bold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+							Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}" />
+
+						<CheckBox
+							Content="Nghiêng"
+							IsChecked="{Binding SubtitleSetting.Italic, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+							Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}" />
+
+						<CheckBox
+							Content="Gạch chân"
+							IsChecked="{Binding SubtitleSetting.Underline, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+							Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}" />
+
+						<CheckBox
+							Content="Gạch ngang"
+							IsChecked="{Binding SubtitleSetting.Strikeout, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+							Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}" />
 
 					</StackPanel>
-				</Border>
 
-				<Border
-					Grid.Column="1"
-					Margin="5"
-					BorderBrush="MediumPurple"
-					BorderThickness="1"
-					CornerRadius="20">
+					<Grid Margin="0,10,0,20">
+						<Grid.ColumnDefinitions>
 
-					<StackPanel Margin="5">
-						<StackPanel Margin="5" Orientation="Horizontal">
-
-							<CheckBox
-								Name="CkbOverrideSub"
-								Margin="0,0,5,0"
-								IsChecked="{Binding Path=SubtitleSetting.OverrideStyleDefault}"
-								Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}">
-								Đè Default
-							</CheckBox>
-
-							<CheckBox
-								Name="CkbHdr"
-								Grid.Column="1"
-								Margin="0,0,5,0"
-								IsChecked="{Binding Path=VideoSetting.EnableHdr, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-								Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}">
-								HDR
-							</CheckBox>
-
-							<CheckBox
-								Name="CkbScanDeep"
-								Margin="0,0,5,0"
-								Command="{Binding ScanDeepCommand}"
-								IsChecked="{Binding Path=VideoSetting.ScanDeep, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-								Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}">
-								Quét folder con
-							</CheckBox>
-						</StackPanel>
-
-						<StackPanel Margin="0,15,0,0" Orientation="Horizontal">
-							<TextBlock
-								Margin="0,0,10,5"
-								HorizontalAlignment="Center"
-								VerticalAlignment="Bottom"
-								Style="{StaticResource MaterialDesignTitleMediumTextBlock}"
-								Text="Vị trí phụ đề:" />
-
-							<Grid>
-								<Grid.ColumnDefinitions>
-									<ColumnDefinition />
-									<ColumnDefinition />
-								</Grid.ColumnDefinitions>
-
-								<CheckBox
-									Grid.Row="0"
-									Grid.Column="0"
-									Margin="0,0,10,0"
-									Content="Trong file"
-									IsChecked="{Binding SubtitleSetting.SubtitleInFile, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-									Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}" />
-
-								<CheckBox
-									Grid.Row="0"
-									Grid.Column="1"
-									Content="Cùng thư mục"
-									IsChecked="{Binding SubtitleSetting.SubtitleInFile, Converter={StaticResource SubtitleInFileConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-									Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}" />
-
-							</Grid>
-						</StackPanel>
+							<ColumnDefinition />
+							<ColumnDefinition />
+							<ColumnDefinition />
+						</Grid.ColumnDefinitions>
 
 						<TextBox
-							Margin="0,20"
+							Margin="0,0,20,0"
 							Padding="5"
 							VerticalAlignment="Center"
-							materialDesign:HintAssist.Hint="Danh sách đuôi file"
+							materialDesign:HintAssist.Hint="Font Size"
 							Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-							Text="{Binding SubtitleSetting.SuffixSubtitle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+							Text="{Binding SubtitleSetting.FontSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-						<Grid Margin="0,10">
+						<TextBox
+							Grid.Column="1"
+							Margin="0,0,20,0"
+							Padding="5"
+							VerticalAlignment="Center"
+							materialDesign:HintAssist.Hint="OutLine"
+							Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+							Text="{Binding SubtitleSetting.OutLine, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+						<TextBox
+							Grid.Column="2"
+							Margin="0,0,20,0"
+							Padding="5"
+							VerticalAlignment="Center"
+							materialDesign:HintAssist.Hint="Max Bitrate"
+							Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+							Text="{Binding SubtitleSetting.MaxBitrate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+					</Grid>
+
+					<TextBox
+						Margin="0,0,20,20"
+						Padding="5"
+						VerticalAlignment="Center"
+						materialDesign:HintAssist.Hint="Website"
+						Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+						Text="{Binding SubtitleSetting.Website, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+					<TextBox
+						MaxHeight="100"
+						Margin="0,0,20,20"
+						Padding="5"
+						VerticalAlignment="Center"
+						materialDesign:HintAssist.Hint="Marquee - Dòng chữ chạy trên video"
+						AcceptsReturn="True"
+						HorizontalScrollBarVisibility="Auto"
+						Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+						Text="{Binding SubtitleSetting.Marquee, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+						TextWrapping="Wrap"
+						VerticalScrollBarVisibility="Auto" />
+
+				</StackPanel>
+			</Border>
+
+			<Border
+				Grid.Row="1"
+				Grid.Column="1"
+				Margin="5"
+				Padding="5"
+				BorderBrush="MediumPurple"
+				BorderThickness="1"
+				CornerRadius="20">
+
+				<StackPanel Margin="5">
+					<StackPanel
+						Margin="5"
+						IsEnabled="{Binding EnableWindow}"
+						Orientation="Horizontal">
+
+						<CheckBox
+							Name="CkbOverrideSub"
+							Margin="0,0,5,0"
+							IsChecked="{Binding Path=SubtitleSetting.OverrideStyleDefault}"
+							Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}">
+							Đè Default
+						</CheckBox>
+
+						<CheckBox
+							Name="CkbHdr"
+							Margin="0,0,5,0"
+							IsChecked="{Binding Path=VideoSetting.EnableHdr, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+							Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}">
+							HDR
+						</CheckBox>
+
+						<CheckBox
+							Name="CkbScanDeep"
+							Margin="0,0,5,0"
+							Command="{Binding ScanDeepCommand}"
+							IsChecked="{Binding Path=VideoSetting.ScanDeep, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+							Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}">
+							Quét folder con
+						</CheckBox>
+					</StackPanel>
+
+					<StackPanel
+						Margin="0,15,0,0"
+						IsEnabled="{Binding EnableWindow}"
+						Orientation="Horizontal">
+						<TextBlock
+							Margin="0,0,10,5"
+							HorizontalAlignment="Center"
+							VerticalAlignment="Bottom"
+							Style="{StaticResource MaterialDesignTitleMediumTextBlock}"
+							Text="Vị trí phụ đề:" />
+
+						<Grid>
 							<Grid.ColumnDefinitions>
 								<ColumnDefinition />
-								<ColumnDefinition Width="Auto" />
+								<ColumnDefinition />
 							</Grid.ColumnDefinitions>
 
-							<TextBox
-								VerticalAlignment="Center"
-								IsReadOnly="True"
-								Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-								Text="{Binding VideoSetting.InputFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-							<StackPanel
+							<CheckBox
+								Grid.Row="0"
+								Grid.Column="0"
+								Margin="0,0,10,0"
+								Content="Trong file"
+								IsChecked="{Binding SubtitleSetting.SubtitleInFile, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+								Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}" />
+
+							<CheckBox
+								Grid.Row="0"
 								Grid.Column="1"
-								Margin="10,0,0,0"
-								Orientation="Horizontal">
-								<Button
-									Margin="0,0,5,0"
-									Command="{Binding SelectPathCommand}"
-									Content="{materialDesign:PackIcon FolderEdit}"
-									ToolTip="Icon" />
-								<Button
-									Command="{Binding OpenFolderCommand}"
-									CommandParameter="{Binding VideoSetting.InputFolder}"
-									Content="{materialDesign:PackIcon FolderOpen}"
-									ToolTip="Icon" />
+								Content="Cùng thư mục"
+								IsChecked="{Binding SubtitleSetting.SubtitleInFile, Converter={StaticResource SubtitleInFileConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+								Style="{StaticResource MaterialDesignFilterChipPrimaryCheckBox}" />
 
-							</StackPanel>
 						</Grid>
+					</StackPanel>
 
-						<!--<TextBox
+					<TextBox
+						Margin="0,15"
+						VerticalAlignment="Center"
+						materialDesign:HintAssist.Hint="Danh sách đuôi file"
+						IsEnabled="{Binding EnableWindow}"
+						Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+						Text="{Binding SubtitleSetting.SuffixSubtitle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+					<Grid Margin="0,10" IsEnabled="{Binding EnableWindow}">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition />
+							<ColumnDefinition Width="Auto" />
+						</Grid.ColumnDefinitions>
+
+						<TextBox
 							VerticalAlignment="Center"
-							materialDesign:HintAssist.Hint="Số file tìm được"
+							materialDesign:HintAssist.Hint="Thư mục chứa file"
 							IsReadOnly="True"
 							Style="{StaticResource MaterialDesignFloatingHintTextBox}"
-							Text="{Binding Files.Count, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />-->
-
-						<Grid Margin="5">
-							<Grid.ColumnDefinitions>
-								<ColumnDefinition />
-								<ColumnDefinition />
-								<ColumnDefinition />
-							</Grid.ColumnDefinitions>
-
+							Text="{Binding VideoSetting.InputFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+						<StackPanel
+							Grid.Column="1"
+							Margin="10,0,0,0"
+							Orientation="Horizontal">
 							<Button
-								Name="BtnRun"
-								Margin="5"
-								Command="{Binding RunEncodeCommand}">
-								<Button.Content>
+								Margin="0,0,5,0"
+								Command="{Binding SelectPathCommand}"
+								Content="{materialDesign:PackIcon FolderEdit}"
+								ToolTip="Icon" />
+							<Button
+								Command="{Binding OpenFolderCommand}"
+								CommandParameter="{Binding VideoSetting.InputFolder}"
+								Content="{materialDesign:PackIcon FolderOpen}"
+								ToolTip="Icon" />
+
+						</StackPanel>
+					</Grid>
+
+					<Grid>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition />
+							<ColumnDefinition />
+							<ColumnDefinition />
+						</Grid.ColumnDefinitions>
+
+						<Button Name="BtnRun" Command="{Binding RunEncodeCommand}">
+							<Button.Content>
+								<StackPanel Orientation="Horizontal">
+									<TextBlock Margin="0,0,5,0">Chạy</TextBlock>
 									<materialDesign:PackIcon Kind="Play" />
-								</Button.Content>
-							</Button>
+								</StackPanel>
+							</Button.Content>
+						</Button>
 
-							<Button
-								Name="BtnReset"
-								Grid.Column="1"
-								Margin="5"
-								Command="{Binding ResetCommand}">
-								<Button.Content>
+						<Button
+							Name="BtnReset"
+							Grid.Column="1"
+							Margin="5,0,5,0"
+							Command="{Binding ResetCommand}">
+							<Button.Content>
+								<StackPanel Orientation="Horizontal">
+									<TextBlock Margin="0,0,5,0">Reset</TextBlock>
 									<materialDesign:PackIcon Kind="Restart" />
+								</StackPanel>
+							</Button.Content>
+						</Button>
+						<Button
+							Name="BtnCancel"
+							Grid.Column="2"
+							Command="{Binding CancelEncodeCommand}">
+							<Button.Content>
+								<StackPanel Orientation="Horizontal">
+									<TextBlock Margin="0,0,5,0">Huỷ</TextBlock>
+									<materialDesign:PackIcon Kind="CancelBold" />
+								</StackPanel>
+							</Button.Content>
+						</Button>
 
-								</Button.Content>
-							</Button>
-							<Button
-								Name="BtnCancel"
-								Grid.Column="2"
-								Margin="5"
-								Command="{Binding ResetCommand}">
-								<Button.Content>
-									<materialDesign:PackIcon Kind="Cancel" />
+					</Grid>
 
-								</Button.Content>
-							</Button>
+					<!--<Grid Margin="0,15,0,0">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="Auto" />
+							<ColumnDefinition />
+							<ColumnDefinition />
+							<ColumnDefinition />
+						</Grid.ColumnDefinitions>
+						<StackPanel Margin="0,0,20,0" Orientation="Horizontal">
+							<TextBlock Text="{Binding SuccessCount}" />
+							<TextBlock>/</TextBlock>
+							<TextBlock Text="{Binding Files.Count}" />
+							<TextBlock Text=" File(s)" />
 
-						</Grid>
+						</StackPanel>
+						<ProgressBar
+							Name="PbStatus"
+							Grid.Column="1"
+							Maximum="100"
+							Value="{Binding SuccessPercent}" />
+						<TextBlock
+							Grid.Column="2"
+							Margin="10,0"
+							Text="{Binding DurationStopwatch}" />
+					</Grid>-->
+				</StackPanel>
+			</Border>
 
-						<Grid Margin="5">
-							<Grid.ColumnDefinitions>
-								<ColumnDefinition Width="Auto" />
-								<ColumnDefinition />
-								<ColumnDefinition />
-								<ColumnDefinition />
-							</Grid.ColumnDefinitions>
-							<StackPanel Margin="0,0,20,0" Orientation="Horizontal">
-								<TextBlock Text="{Binding SuccessCount}" />
-								<TextBlock>/</TextBlock>
-								<TextBlock Text="{Binding Files.Count}" />
+		</Grid>
 
-							</StackPanel>
-							<ProgressBar
-								Name="PbStatus"
-								Grid.Column="1"
-								Maximum="100"
-								Value="{Binding SuccessPercent}" />
-							<TextBlock
-								Grid.Column="2"
-								Margin="10,0"
-								Text="{Binding DurationStopwatch}" />
-						</Grid>
-					</StackPanel>
-				</Border>
-
-			</Grid>
-
-		</StackPanel>
 	</Grid>
 </Window>
