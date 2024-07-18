@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
@@ -8,7 +9,6 @@ using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
-using SuperEncode.Wpf.Extensions;
 using SuperEncode.Wpf.Services;
 using SuperEncode.Wpf.Models;
 using SuperEncode.Wpf.UserControls;
@@ -17,7 +17,7 @@ using System.Media;
 
 namespace SuperEncode.Wpf.ViewModels
 {
-    public partial class MainViewModel(VideoService videoService, SubtitleService subtitleService,INotificationManager notificationManager) : ObservableObject
+    public partial class MainViewModel(VideoService videoService, SubtitleService subtitleService, INotificationManager notificationManager) : ObservableObject
     {
         private CancellationTokenSource _cancellationTokenSource = new();
         private const string FontDirectory = @"C:\Windows\Fonts";
@@ -40,14 +40,11 @@ namespace SuperEncode.Wpf.ViewModels
         [ObservableProperty]
         private bool _enableWindow = true;
 
-        [ObservableProperty]
-        private bool _enablePreview = true;
 
         [ObservableProperty]
         private CurrentVideoPlayerData _playerData = new();
 
         public ObservableCollection<string> Files { get; set; } = [];
-
         public ObservableCollection<EncodeVideoInput> VideoInputs { get; set; } = [];
         public ObservableCollection<FontFamily> FontFamilies { get; set; } = [];
 
@@ -68,9 +65,9 @@ namespace SuperEncode.Wpf.ViewModels
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), nameof(SuperEncode), $"{nameof(SuperEncode)}-Config.json");
                 await SaveConfigToFile(configPath);
 
-                if (_runningProcess is { HasExited: false })
+                if (RunningProcess is { HasExited: false })
                 {
-                    _runningProcess.Kill();
+                    RunningProcess.Kill();
                 }
             }
 
@@ -130,7 +127,6 @@ namespace SuperEncode.Wpf.ViewModels
         private async Task RunEncode()
         {
             PlayerData.SubtitleUrl = PlayerData.VideoUrl = string.Empty;
-            EnablePreview = false;
 
             UpdateFileList(VideoSetting.InputFolder);
 
@@ -169,13 +165,11 @@ namespace SuperEncode.Wpf.ViewModels
             //    MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK
             //);
 
-            var content = new NotificationContent();
-            notificationManager.Show("Thông báo", "Xử lý hoàn tất",NotificationType.Success);
+            notificationManager.Show("Thông báo", "Xử lý hoàn tất", NotificationType.Success);
             PlayNotificationSound();
             await timer.DisposeAsync();
 
             SuccessCount = 0;
-            EnablePreview = true;
 
             UpdateEnableWindow(true);
         }
@@ -185,10 +179,10 @@ namespace SuperEncode.Wpf.ViewModels
 
             try
             {
-                string soundFilePath = Path.Combine(AppContext.BaseDirectory,"AssStyles", "sound-success.wav");
+                string soundFilePath = Path.Combine(AppContext.BaseDirectory, "AssStyles", "sound-success.wav");
 
                 var player = new SoundPlayer(soundFilePath);
-                
+
                 player.Play();
             }
             catch (Exception ex)
@@ -207,11 +201,9 @@ namespace SuperEncode.Wpf.ViewModels
 
             Files.Clear();
 
-            VideoInputs.Clear();
+            UpdateCanRunEncode(Files.Any());
 
-            CanRun = Files.Any();
-
-            PlayerData.SubtitleUrl = PlayerData.VideoUrl = String.Empty;
+            PlayerData.SubtitleUrl = PlayerData.VideoUrl = string.Empty;
 
             RunEncodeCommand.NotifyCanExecuteChanged();
 
@@ -294,22 +286,8 @@ namespace SuperEncode.Wpf.ViewModels
                 Files.Add(file);
             }
 
-            if (Files.Any())
-            {
-                VideoInputs.Clear();
+            UpdateCanRunEncode(Files.Any());
 
-                foreach (var file in Files)
-                {
-                    VideoInputs.Add(new EncodeVideoInput()
-                    {
-                        FilePath = file,
-                        Percent = 0,
-                    });
-                }
-
-            }
-
-            EnablePreview = CanRun = Files.Any();
             RunEncodeCommand.NotifyCanExecuteChanged();
 
 
@@ -341,9 +319,6 @@ namespace SuperEncode.Wpf.ViewModels
             SubtitleSetting.FontFamily = FontFamilies.FirstOrDefault();
 
         }
-
-
-
         async Task ProcessFile(EncodeVideoInput input)
         {
             if (!File.Exists(input.FilePath))
@@ -368,25 +343,67 @@ namespace SuperEncode.Wpf.ViewModels
             ResetCommand.NotifyCanExecuteChanged();
             CancelEncodeCommand.NotifyCanExecuteChanged();
         }
-        private static Process? _runningProcess;
+
+        private void UpdateCanRunEncode(bool value)
+        {
+            CanRun = value;
+            CancelEncodeCommand.NotifyCanExecuteChanged();
+        }
+
+        public static Process? RunningProcess;
         private static void ShowErrorMessage(string message)
         {
             MessageBox.Show(message, "Thống báo", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
         }
-        private void VideoEventHandler(object? sender, VideoProcessEventArgs e)
-        {
-            _runningProcess = sender as Process;
-            SuccessPercent = e.Percentage;
-        }
+
         public Task LoadAsync()
         {
             UpdateFileList(VideoSetting.InputFolder);
 
             UpdateFontFamilies(SubtitleSetting.FontSearchText!);
 
-            videoService.VideoEventHandler += VideoEventHandler;
+            Files.CollectionChanged += Files_CollectionChanged;
+
             return Task.CompletedTask;
         }
+
+        private void Files_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+
+            if (e.Action == NotifyCollectionChangedAction.Add)
+            {
+                if (e.NewItems == null) return;
+
+                foreach (string newFile in e.NewItems)
+                {
+                    VideoInputs.Add(new EncodeVideoInput 
+                        { 
+                            FilePath = newFile ,
+                            Percent = 0
+
+                        }
+                    );
+                }
+            }
+            else if (e.Action == NotifyCollectionChangedAction.Remove)
+            {
+                if (e.OldItems == null) return;
+                foreach (string oldFile in e.OldItems)
+                {
+                    var itemToRemove = VideoInputs.FirstOrDefault(vi => vi.FilePath == oldFile);
+                    if (itemToRemove != null)
+                    {
+                        VideoInputs.Remove(itemToRemove);
+                    }
+                }
+            }
+            else if (e.Action == NotifyCollectionChangedAction.Reset)
+            {
+                VideoInputs.Clear();
+            }
+
+        }
+
         private static List<FontFamily> LoadFonts(string filterName)
         {
             var installedFonts = Fonts.GetFontFamilies(FontDirectory)

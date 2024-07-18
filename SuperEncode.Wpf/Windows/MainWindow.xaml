@@ -91,7 +91,7 @@
 								<DataGridTemplateColumn.CellTemplate>
 									<DataTemplate>
 										<StackPanel>
-											<Button Command="{Binding DataContext.PlayPreviewCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}">
+											<Button Command="{Binding DataContext.PlayPreviewCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" IsEnabled="{Binding DataContext.EnableWindow, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}">
 												<Button.Content>
 													<StackPanel Orientation="Horizontal">
 														<materialDesign:PackIcon Margin="0,0,3,0" Kind="VideoOutline" />
@@ -102,10 +102,10 @@
 													<MultiBinding Converter="{StaticResource MultiValueForDragWindowConverter}">
 														<Binding />
 														<Binding ElementName="VideoPlayer" />
-
 													</MultiBinding>
 												</Button.CommandParameter>
 											</Button>
+
 										</StackPanel>
 									</DataTemplate>
 								</DataGridTemplateColumn.CellTemplate>
