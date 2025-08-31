@@ -1,18 +1,17 @@
 ﻿using System.Globalization;
 using System.Windows.Data;
 
-namespace SuperEncode.Wpf.Converters
-{
-    public class MultiValueForDragWindowConverter : IMultiValueConverter
-    {
-        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
-        {
-            return values.Clone();
-        }
+namespace SuperEncode.Wpf.Converters;
 
-        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
+public class MultiValueForDragWindowConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+    {
+        return values.Clone();
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
     }
 }

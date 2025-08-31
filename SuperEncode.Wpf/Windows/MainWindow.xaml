@@ -109,7 +109,9 @@
 								<DataGridTemplateColumn.CellTemplate>
 									<DataTemplate>
 										<StackPanel>
-											<Button Command="{Binding DataContext.PlayPreviewCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" IsEnabled="{Binding DataContext.EnableWindow, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}">
+											<Button
+												Command="{Binding DataContext.PlayPreviewCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}"
+												IsEnabled="{Binding DataContext.EnableWindow, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}">
 												<Button.Content>
 													<StackPanel Orientation="Horizontal">
 														<materialDesign:PackIcon Margin="0,0,3,0" Kind="VideoOutline" />
@@ -169,7 +171,8 @@
 
 							<b:Interaction.Triggers>
 								<b:EventTrigger EventName="TextChanged">
-									<b:InvokeCommandAction Command="{Binding UpdateFontFamiliesCommand}" CommandParameter="{Binding ElementName=TxtFontName, Path=Text}" />
+									<b:InvokeCommandAction Command="{Binding UpdateFontFamiliesCommand}"
+									                       CommandParameter="{Binding ElementName=TxtFontName, Path=Text}" />
 								</b:EventTrigger>
 							</b:Interaction.Triggers>
 						</TextBox>
@@ -184,7 +187,8 @@
 							Style="{StaticResource MaterialDesignOutlinedComboBox}">
 							<ComboBox.ItemTemplate>
 								<DataTemplate>
-									<TextBlock FontFamily="{Binding Converter={StaticResource FontFamilyConverter}}" Text="{Binding Converter={StaticResource FontFamilyNameConverter}}" />
+									<TextBlock FontFamily="{Binding Converter={StaticResource FontFamilyConverter}}"
+									           Text="{Binding Converter={StaticResource FontFamilyNameConverter}}" />
 								</DataTemplate>
 							</ComboBox.ItemTemplate>
 						</ComboBox>

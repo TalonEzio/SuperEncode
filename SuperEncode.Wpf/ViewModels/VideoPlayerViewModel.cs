@@ -1,12 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace SuperEncode.Wpf.ViewModels
+namespace SuperEncode.Wpf.ViewModels;
+
+public partial class VideoPlayerViewModel : ObservableObject
 {
-    public partial class VideoPlayerViewModel : ObservableObject
-    {
-        [ObservableProperty]
-        private long _currentTime = 0;
-        [ObservableProperty]
-        private long _totalTime = 0;
-    }
+    [ObservableProperty] private long _currentTime;
+
+    [ObservableProperty] private long _totalTime;
 }

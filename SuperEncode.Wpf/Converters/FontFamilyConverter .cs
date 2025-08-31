@@ -2,20 +2,19 @@
 using System.Windows.Data;
 using System.Windows.Media;
 
-namespace SuperEncode.Wpf.Converters
+namespace SuperEncode.Wpf.Converters;
+
+public class FontFamilyConverter : IValueConverter
 {
-    public class FontFamilyConverter: IValueConverter
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-        {
-            var fonts = Fonts.GetFontFamilies(@"C:\Windows\Fonts");
+        var fonts = Fonts.GetFontFamilies(@"C:\Windows\Fonts");
 
-            return value as FontFamily ?? fonts.First();
-        }
+        return value as FontFamily ?? fonts.First();
+    }
 
-        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
     }
 }

@@ -2,22 +2,22 @@
 using System.Windows.Data;
 using System.Windows.Media;
 
-namespace SuperEncode.Wpf.Converters
+namespace SuperEncode.Wpf.Converters;
+
+public class FontFamilyNameConverter : IValueConverter
 {
-    public class FontFamilyNameConverter: IValueConverter
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-        {
-            if (value is not FontFamily input) return 
+        if (value is not FontFamily input)
+            return
                 "Uvn van";
 
-            var fontName = input.Source.Split("#")[^1];
-            return fontName;
-        }
+        var fontName = input.Source.Split("#")[^1];
+        return fontName;
+    }
 
-        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
     }
 }
