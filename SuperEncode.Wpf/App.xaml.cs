@@ -1,11 +1,11 @@
-﻿using System.IO;
+﻿using System.Diagnostics;
+using System.IO;
 using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
 using SuperEncode.Wpf.ViewModels;
 using SuperEncode.Wpf.Windows;
 using SuperEncode.Wpf.Services;
 using System.Text.Json;
-using LibVLCSharp.Shared;
 using SuperEncode.Wpf.Models;
 using Notification.Wpf;
 
@@ -13,6 +13,7 @@ namespace SuperEncode.Wpf
 {
     public partial class App
     {
+        public static List<Process> RunningProcesses { get; set; } = [];
         readonly string _applicationPath = AppContext.BaseDirectory;
 
         private readonly string _applicationDataPath =
@@ -20,13 +21,15 @@ namespace SuperEncode.Wpf
 
         public App()
         {
+            InitializeComponent();
+        }
+
+        protected override void OnStartup(StartupEventArgs e)
+        {
             var serviceProvider = ConfigureService();
 
-            InitializeComponent();
-
             var mainWindow = serviceProvider.GetRequiredService<MainWindow>();
-
-            //try
+            try
             {
                 var mainViewModel = serviceProvider.GetRequiredService<MainViewModel>();
 
@@ -37,7 +40,7 @@ namespace SuperEncode.Wpf
                     File.Copy(Path.Combine(AppContext.BaseDirectory, "AssStyles", "SuperEncode-Config.Default.json"), settingFilePath);
                 }
 
-                read:
+                readJsonConfig:
                 var settingJsonContent = File.ReadAllText(settingFilePath);
                 try
                 {
@@ -60,18 +63,22 @@ namespace SuperEncode.Wpf
                     }
                     File.Copy(Path.Combine(AppContext.BaseDirectory, "AssStyles", "SuperEncode-Config.Default.json"),
                         settingFilePath);
-                    goto read;
+                    goto readJsonConfig;
                 }
-                
-
                 mainWindow.Show();
-
-
             }
-            //catch (Exception e)
-            //{
-            //    MessageBox.Show(e.Message);
-            //}
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            foreach (var runningProcess in RunningProcesses)
+            {
+                runningProcess.Kill();
+            }
         }
 
         private void ScanConfig()
@@ -102,8 +109,6 @@ namespace SuperEncode.Wpf
             ScanConfig();
 
             IServiceCollection services = new ServiceCollection();
-
-
 
             services.AddSingleton<INotificationManager, NotificationManager>();
 

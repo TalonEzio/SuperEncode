@@ -5,8 +5,8 @@ namespace SuperEncode.Wpf.ViewModels
     public partial class VideoPlayerViewModel : ObservableObject
     {
         [ObservableProperty]
-        private long currentTime;
+        private long _currentTime = 0;
         [ObservableProperty]
-        private long totalTime;
+        private long _totalTime = 0;
     }
 }

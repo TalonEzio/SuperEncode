@@ -2,6 +2,8 @@
 using System.Globalization;
 using System.IO;
 using System.Text;
+using Nikse.SubtitleEdit.Core.Common;
+using Nikse.SubtitleEdit.Core.SubtitleFormats;
 using SuperEncode.Wpf.Extensions;
 using SuperEncode.Wpf.Models;
 using SuperEncode.Wpf.ViewModels;
@@ -55,7 +57,7 @@ namespace SuperEncode.Wpf.Services
             var suffixList = new List<string> { "" };
             suffixList.AddRange(suffixString.Split(',').Where(x => !string.IsNullOrEmpty(x)));
 
-            string[] subtitleExtensions = [".ass", ".srt", ".vtt"];
+            string[] subtitleExtensions = [".ass", ".srt", ".vtt",".xml"];
 
             Debug.WriteLine(subtitleDirectory);
             foreach (var subtitleExtension in subtitleExtensions)
@@ -88,8 +90,14 @@ namespace SuperEncode.Wpf.Services
         {
             var actuallySubtitleFullPath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetTempFileName(), ".ass"));
 
-            var arguments = BuildConvertSubtitleArguments(subtitleFullPath, actuallySubtitleFullPath);
-            await RunFfmpegWithArguments(arguments, false);
+            //var arguments = BuildConvertSubtitleArguments(subtitleFullPath, actuallySubtitleFullPath);
+            //await RunFfmpegWithArguments(arguments, false);
+
+            var subtitleEdit = Subtitle.Parse(subtitleFullPath);
+
+            var assSubContent = new AdvancedSubStationAlpha().ToText(subtitleEdit,Path.GetFileName(actuallySubtitleFullPath));
+
+            await File.WriteAllTextAsync(actuallySubtitleFullPath, assSubContent, CancellationToken.None);
 
             if (subtitleFullPath.EndsWith(".ass"))
                 return actuallySubtitleFullPath;
@@ -139,7 +147,7 @@ namespace SuperEncode.Wpf.Services
 
         private static async Task RunFfmpegWithArguments(string arguments, bool enableCmd)
         {
-            var ffmpegPath = Path.Combine(BasePath, "Tools", "ffmpeg.exe");
+            var ffmpegPath = "ffmpeg.exe";
             var startInfo = new ProcessStartInfo
             {
                 FileName = ffmpegPath,
@@ -214,6 +222,17 @@ namespace SuperEncode.Wpf.Services
                 .Replace("[[[Marquee]]]", subtitleSetting.Marquee)
                 .Replace("[[[Marquee-FontName]]]", subtitleSetting.GetFontName())
                 .Replace("[[[Marquee-FontSize]]]", (subtitleSetting.FontSize * 7.5 / 10).ToString(CultureInfo.InvariantCulture));
+
+            if (string.IsNullOrWhiteSpace(subtitleSetting.Marquee))
+            {
+                var beginMarqueeIndex = outputContent.IndexOf("Dialogue: 0,0:00:00.00,0:02:00.00,Animew-Marquee",
+                    StringComparison.InvariantCultureIgnoreCase);
+                if (beginMarqueeIndex > -1)
+                {
+                    outputContent = outputContent[..(beginMarqueeIndex - 1)];
+                }
+            }
+
 
             const string beginStyleString = "[V4+ Styles]";
 

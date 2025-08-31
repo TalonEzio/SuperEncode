@@ -27,7 +27,7 @@
 			<converters:FontFamilyConverter x:Key="FontFamilyConverter" />
 			<converters:SubtitleInFileConverter x:Key="SubtitleInFileConverter" />
 			<converters:MultiValueForDragWindowConverter x:Key="MultiValueForDragWindowConverter" />
-
+			<converters:TimeSpanTextConverter x:Key="TimeSpanTextConverter" />
 		</ResourceDictionary>
 
 	</Application.Resources>

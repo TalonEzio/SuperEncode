@@ -19,6 +19,8 @@ namespace SuperEncode.Wpf.ViewModels
 {
     public partial class MainViewModel(VideoService videoService, SubtitleService subtitleService, INotificationManager notificationManager) : ObservableObject
     {
+        public static Process? RunningProcess;
+
         private CancellationTokenSource _cancellationTokenSource = new();
         private const string FontDirectory = @"C:\Windows\Fonts";
 
@@ -81,38 +83,45 @@ namespace SuperEncode.Wpf.ViewModels
         [RelayCommand]
         public async Task PlayPreview(object[] paramsObjects)
         {
-            var input = paramsObjects[0] as EncodeVideoInput;
-
-            var videoPlayer = paramsObjects[1] as UcVideoPlayer;
-
-            videoPlayer!.VideoView.MediaPlayer!.Stop();
-
-            await Task.Delay(500);
-
-            if (File.Exists(PlayerData.SubtitleUrl))
+            try
             {
-                File.Delete(PlayerData.SubtitleUrl);
-            }
+                var input = paramsObjects[0] as EncodeVideoInput;
 
-            if (!File.Exists(input?.FilePath)) return;
+                var videoPlayer = paramsObjects[1] as UcVideoPlayer;
 
-            PlayerData.VideoUrl = input.FilePath;
-            OnPropertyChanged(PlayerData.VideoUrl);
+                videoPlayer!.VideoView.MediaPlayer!.Stop();
 
-            var tempSubtitleFromVideo = await subtitleService.GetSubtitleFromVideo(
-                input.FilePath,
-                SubtitleSetting,
-                _cancellationTokenSource.Token
+                await Task.Delay(500);
+
+                if (File.Exists(PlayerData.SubtitleUrl))
+                {
+                    File.Delete(PlayerData.SubtitleUrl);
+                }
+
+                if (!File.Exists(input?.FilePath)) return;
+
+                PlayerData.VideoUrl = input.FilePath;
+                OnPropertyChanged(PlayerData.VideoUrl);
+
+                var tempSubtitleFromVideo = await subtitleService.GetSubtitleFromVideo(
+                    input.FilePath,
+                    SubtitleSetting,
+                    _cancellationTokenSource.Token
                 );
 
-            if (!string.IsNullOrEmpty(tempSubtitleFromVideo))
-            {
-                PlayerData.SubtitleUrl = tempSubtitleFromVideo;
-                OnPropertyChanged(PlayerData.SubtitleUrl);
+                if (!string.IsNullOrEmpty(tempSubtitleFromVideo))
+                {
+                    PlayerData.SubtitleUrl = tempSubtitleFromVideo;
+                    OnPropertyChanged(PlayerData.SubtitleUrl);
+                }
+
+
+                _cancellationTokenSource = new CancellationTokenSource();
             }
-
-
-            _cancellationTokenSource = new CancellationTokenSource();
+            catch (Exception e)
+            {
+                PlayErrorSound("Lỗi " + e.Message);
+            }
         }
 
         [RelayCommand]
@@ -126,6 +135,7 @@ namespace SuperEncode.Wpf.ViewModels
         [RelayCommand(CanExecute = nameof(CanRunEncode))]
         private async Task RunEncode()
         {
+            SuccessCount = 0;
             PlayerData.SubtitleUrl = PlayerData.VideoUrl = string.Empty;
 
             UpdateFileList(VideoSetting.InputFolder);
@@ -135,8 +145,9 @@ namespace SuperEncode.Wpf.ViewModels
             UpdateEnableWindow(false);
 
             var timer = new Timer(_ =>
-                OnPropertyChanged(nameof(DurationStopwatch)), null, 10, 10);
+                OnPropertyChanged(nameof(DurationStopwatch)), null, 100, 100);
 
+            bool userCancelProcessing = false;
             foreach (var input in VideoInputs)
             {
                 try
@@ -145,53 +156,61 @@ namespace SuperEncode.Wpf.ViewModels
                 }
                 catch (FileNotFoundException)
                 {
-                    ShowErrorMessage($"Encode lỗi {Path.GetFileName(input.FilePath)}, file không thấy!");
+                    PlayErrorSound($"Encode lỗi, không thấy file: {Path.GetFileName(input.FilePath)}!");
+                }
+                catch (TaskCanceledException)
+                {
+                    PlayWarningSound($"Encode bị hủy: {Path.GetFileName(input.FilePath)}!");
+                    userCancelProcessing = true;
                 }
                 catch (Exception e)
                 {
-                    ShowErrorMessage($"Encode lỗi {Path.GetFileName(input.FilePath)}!\n{e.Message}");
+                    PlayErrorSound($"Encode lỗi {Path.GetFileName(input.FilePath)}!\n{e.Message}");
                 }
                 finally
                 {
                     SuccessCount++;
+                    await input.Stop();
                 }
             }
-
             DurationStopwatch.Stop();
-
-            //MessageBox.Show(
-            //    "Xử lý hoàn tất!",
-            //    "Thống báo",
-            //    MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK
-            //);
-
-            notificationManager.Show("Thông báo", "Xử lý hoàn tất", NotificationType.Success);
-            PlayNotificationSound();
             await timer.DisposeAsync();
 
-            SuccessCount = 0;
+            if (!userCancelProcessing)
+            {
+                PlaySuccessSound("Xử lý hoàn tất");
+            }
 
             UpdateEnableWindow(true);
         }
 
-        private void PlayNotificationSound()
+        private void PlaySuccessSound(string message) => PlaySound(message, NotificationType.Success);
+
+        private void PlayWarningSound(string message) => PlaySound(message, NotificationType.Warning);
+        private void PlayErrorSound(string message) => PlaySound(message, NotificationType.Error);
+
+        public void PlaySound(string message, NotificationType notificationType)
         {
 
-            try
-            {
-                string soundFilePath = Path.Combine(AppContext.BaseDirectory, "AssStyles", "sound-success.wav");
 
-                var player = new SoundPlayer(soundFilePath);
-
-                player.Play();
-            }
-            catch (Exception ex)
+            var soundFile = notificationType switch
             {
-                // Xử lý lỗi nếu có
-                MessageBox.Show("Không thể phát âm thanh: " + ex.Message);
+                NotificationType.Error => "sound-error",
+                NotificationType.Warning => "sound-warning",
+                _ => "sound-success"
+            };
+            soundFile = Path.ChangeExtension(soundFile, ".wav");
+
+            var soundFilePath = Path.Combine(AppContext.BaseDirectory, "AssStyles", soundFile);
+
+            var player = new SoundPlayer(soundFilePath);
+            player.Play();
+
+            if (!string.IsNullOrWhiteSpace(message))
+            {
+                notificationManager.Show(message, notificationType);
             }
         }
-
 
         private bool CanReset() => EnableWindow;
         [RelayCommand(CanExecute = nameof(CanReset))]
@@ -328,13 +347,13 @@ namespace SuperEncode.Wpf.ViewModels
             }
 
             input.Percent = 0;
+            input.Start();
 
-            await videoService.EncodeVideoWithNVencC(
-                input, SubtitleSetting, VideoSetting, _cancellationTokenSource.Token);
+            await videoService.EncodeVideoWithNVencC(                input, SubtitleSetting, VideoSetting, _cancellationTokenSource.Token);
 
             input.Percent = 100;
 
-            _cancellationTokenSource = new();
+            _cancellationTokenSource = new CancellationTokenSource();
         }
 
         private void UpdateEnableWindow(bool value)
@@ -350,7 +369,7 @@ namespace SuperEncode.Wpf.ViewModels
             CancelEncodeCommand.NotifyCanExecuteChanged();
         }
 
-        public static Process? RunningProcess;
+
         private static void ShowErrorMessage(string message)
         {
             MessageBox.Show(message, "Thống báo", MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
@@ -376,12 +395,12 @@ namespace SuperEncode.Wpf.ViewModels
 
                 foreach (string newFile in e.NewItems)
                 {
-                    VideoInputs.Add(new EncodeVideoInput 
-                        { 
-                            FilePath = newFile ,
-                            Percent = 0
+                    VideoInputs.Add(new EncodeVideoInput
+                    {
+                        FilePath = newFile,
+                        Percent = 0
 
-                        }
+                    }
                     );
                 }
             }

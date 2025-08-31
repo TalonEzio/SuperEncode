@@ -39,8 +39,7 @@ namespace SuperEncode.Wpf.Services
             }
             return outputFilePath;
         }
-
-
+        
         private static string BuildNvEncCArguments(
             string path, string outputFile, string subtitlePath,
             SubtitleSetting subtitleSetting, VideoSetting encodeSetting)
@@ -53,7 +52,11 @@ namespace SuperEncode.Wpf.Services
 
             builder.Append($"--max-bitrate {subtitleSetting.MaxBitrate} ");
 
+            //builder.Append($"--audio-copy 0 ");
+
             builder.Append("--audio-codec libmp3lame ");
+
+
             builder.Append("--log-level quiet,core_progress=info ");
 
             builder.Append(encodeSetting.EnableHdr ? "--vpp-colorspace hdr2sdr=hable " : "");
@@ -62,10 +65,9 @@ namespace SuperEncode.Wpf.Services
             return builder.ToString();
         }
 
-
         public async Task<string> RunNvEncC(EncodeVideoInput input, string outputPath, string arguments, CancellationToken cancellationToken = default)
         {
-            var nVencCPath = Path.Combine(BasePath, "Tools", "NVEncC", "NVEncC.exe");
+            var nVencCPath = "NVEncC64.exe";
 
             var startInfo = new ProcessStartInfo
             {
@@ -79,6 +81,7 @@ namespace SuperEncode.Wpf.Services
             using var process = new Process();
             process.StartInfo = startInfo;
             process.EnableRaisingEvents = true;
+            App.RunningProcesses.Add(process);
 
             process.Start();
 
@@ -95,7 +98,7 @@ namespace SuperEncode.Wpf.Services
                     var percentageString = match.Groups[1].Value;
                     var percentage = double.Parse(percentageString, new CultureInfo("en-US"));
 
-                    Debug.WriteLine("Info: Process: " + percentage + "%");
+                    //Debug.WriteLine("Info: Process: " + percentage + "%");
 
 
                     input.Percent = percentage;
@@ -103,6 +106,7 @@ namespace SuperEncode.Wpf.Services
                 }
 
                 await process.WaitForExitAsync(cancellationToken);
+                App.RunningProcesses.Remove(process);
             }
             catch (OperationCanceledException)
             {
@@ -111,9 +115,10 @@ namespace SuperEncode.Wpf.Services
                 if (!process.HasExited)
                 {
                     process.Kill();
+                    App.RunningProcesses.Remove(process);
 
-                    // ReSharper disable once MethodSupportsCancellation
-                    await Task.Delay(100).ConfigureAwait(false);
+                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+
                     if (File.Exists(outputPath))
                     {
                         File.Delete(outputPath);

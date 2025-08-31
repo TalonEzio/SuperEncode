@@ -1,9 +1,7 @@
-﻿using System.Drawing;
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using LibVLCSharp.Shared;
-using Color = System.Drawing.Color;
 using MediaPlayer = LibVLCSharp.Shared.MediaPlayer;
 
 namespace SuperEncode.Wpf.UserControls
